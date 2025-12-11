@@ -114,7 +114,25 @@ pip install -r requirements-ml.txt
 
 The system gracefully degrades to BM25-only retrieval if ML dependencies are unavailable.
 
+## KE Workbench (Internal)
+
+Run the Knowledge Engineering dashboard:
+
+```bash
+streamlit run frontend/ke_dashboard.py
+```
+
+The workbench provides RAG-backed tools for modelers:
+
+- **Source & Context**: View the primary legal text span backing each rule with before/after context
+- **Related provisions**: Browse similar rules with similarity thresholds to reduce noise
+- **Corpus search**: Search by article reference ("Art. 36(1)") or natural language, with results mapped to rules
+
+See [Engine Design](docs/engine_design.md) for architecture details.
+
 ## Documentation
 
 - [Knowledge Model](docs/knowledge_model.md) — Ontology design and worked examples
 - [Rule DSL](docs/rule_dsl.md) — YAML rule specification
+- [Engine Design](docs/engine_design.md) — KE workbench architecture
+- [Semantic Consistency](docs/semantic_consistency_regulatory_kg.md) — Verification tiers and QA framework

@@ -4,6 +4,16 @@ from .retriever import Retriever, RetrievalResult
 from .bm25 import BM25Index
 from .chunker import chunk_text, chunk_by_section, Chunk
 from .rule_context import RuleContextRetriever, RuleContext, ProvisionContext
+from .frontend_helpers import (
+    RuleContextPayload,
+    RelatedProvision,
+    ArticleHit,
+    SemanticHit,
+    SearchResult,
+    get_rule_context,
+    get_related_provisions,
+    search_corpus,
+)
 
 __all__ = [
     "Retriever",
@@ -15,4 +25,13 @@ __all__ = [
     "RuleContextRetriever",
     "RuleContext",
     "ProvisionContext",
+    # Frontend helpers
+    "RuleContextPayload",
+    "RelatedProvision",
+    "ArticleHit",
+    "SemanticHit",
+    "SearchResult",
+    "get_rule_context",
+    "get_related_provisions",
+    "search_corpus",
 ]

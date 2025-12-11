@@ -171,6 +171,16 @@ context = rag.retrieve_context_for_rule(rule)
 similar = rag.similar_provisions(rule, k=5)
 ```
 
+### UI Integration
+
+The same RAG layer that powers consistency checks is also used in the KE Streamlit dashboard to:
+
+- **Present evidence**: The "Source & Context" panel shows the primary text span backing a rule with document/article metadata.
+- **Show candidate related provisions**: The "Similar / related provisions" panel displays related rules with similarity thresholds to avoid noise. Results are structurally filtered (same document_id preferred) and scored.
+- **Enable corpus search**: Modelers can search by article reference ("Art. 36(1)") or natural language, with results mapped back to rules where possible.
+
+This unified approach ensures that what KEs see in the UI matches what the consistency engine uses for verification.
+
 ## Analytics Integration
 
 Consistency data feeds into KE analytics:

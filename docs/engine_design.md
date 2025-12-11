@@ -139,6 +139,18 @@ result = consistency_engine.verify_rule(rule, source_text)
 - Find cross-references in text
 - Locate related rules by source/tags
 
+### KE Workbench UI Integration
+
+The internal RAG layer powers several KE workbench UI features:
+
+- **Source & Context panel**: Displays the primary text span backing a rule, with before/after context paragraphs and document/article metadata.
+- **Similar / related provisions panel**: Uses structural filtering (same document_id) and similarity thresholds to show related rules without noise. Displays "no results above threshold" when appropriate.
+- **Corpus search (sidebar)**: Supports dual-mode search:
+  - *Article lookup mode*: Queries like "Art. 36(1)" or "Article 45" perform exact article matching against rule `source.article` fields.
+  - *Semantic search mode*: Natural language queries perform BM25 retrieval, with results mapped back to rules via `(document_id, article)` matching.
+
+**Important**: Internal RAG is NOT exposed as a public `/ask` endpoint in this repo. It is strictly for KE tooling.
+
 ## Layer 5: KE Interfaces
 
 ### API Endpoints

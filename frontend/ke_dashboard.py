@@ -22,6 +22,14 @@ from backend.rules.schema import DecisionBranch, DecisionLeaf
 from backend.verify import ConsistencyEngine
 from backend.analytics import ErrorPatternAnalyzer, DriftDetector
 from backend.visualization import TreeAdapter, TreeGraph, TreeNode, rule_to_graph
+from backend.rag.frontend_helpers import (
+    get_rule_context,
+    get_related_provisions,
+    search_corpus,
+    RuleContextPayload,
+    RelatedProvision,
+    SearchResult,
+)
 
 # -----------------------------------------------------------------------------
 # Page Configuration
@@ -65,10 +73,54 @@ if "tree_graphs" not in st.session_state:
 if "show_consistency" not in st.session_state:
     st.session_state.show_consistency = True
 
+if "rule_context_cache" not in st.session_state:
+    st.session_state.rule_context_cache = {}
+
+if "last_search" not in st.session_state:
+    st.session_state.last_search = None
+
+if "indexed_documents" not in st.session_state:
+    st.session_state.indexed_documents = []
+
+if "rag_initialized" not in st.session_state:
+    st.session_state.rag_initialized = False
+
 
 # -----------------------------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------------------------
+
+
+def initialize_rag() -> list[str]:
+    """Initialize RAG by indexing documents from data/ folder.
+
+    Returns:
+        List of indexed document IDs.
+    """
+    from backend.rag.rule_context import RuleContextRetriever
+
+    # The context retriever is shared via frontend_helpers module globals
+    # When we call get_rule_context, it triggers _get_context_retriever()
+    # which auto-indexes documents from data/
+
+    # Force initialization by getting context for any rule
+    rule_ids = get_rule_ids()
+    if rule_ids:
+        get_rule_context(rule_ids[0])
+
+    # Now check what documents are indexed via frontend_helpers module
+    from backend.rag import frontend_helpers
+    if frontend_helpers._context_retriever:
+        return list(frontend_helpers._context_retriever.indexed_documents)
+    return []
+
+
+def get_cached_rule_context(rule_id: str) -> RuleContextPayload | None:
+    """Get rule context with caching."""
+    if rule_id not in st.session_state.rule_context_cache:
+        ctx = get_rule_context(rule_id)
+        st.session_state.rule_context_cache[rule_id] = ctx
+    return st.session_state.rule_context_cache[rule_id]
 
 
 def get_rule_ids() -> list[str]:
@@ -149,6 +201,12 @@ def select_node(node_id: str) -> None:
 # -----------------------------------------------------------------------------
 
 with st.sidebar:
+    # Initialize RAG on first load
+    if not st.session_state.rag_initialized:
+        with st.spinner("Indexing documents from data/..."):
+            st.session_state.indexed_documents = initialize_rag()
+            st.session_state.rag_initialized = True
+
     st.header("Rule Selection")
 
     # Rule dropdown
@@ -204,6 +262,78 @@ with st.sidebar:
 
     st.divider()
 
+    # Corpus search (internal)
+    st.header("Corpus Search")
+    search_query = st.text_input(
+        "Search corpus (internal)",
+        placeholder="Art. 36(1) or 'reserve assets'",
+        key="corpus_search_input",
+    )
+
+    if search_query:
+        if st.button("Search", key="search_corpus_btn", use_container_width=True):
+            with st.spinner("Searching..."):
+                st.session_state.last_search = search_corpus(search_query)
+
+    # Display search results
+    if st.session_state.last_search:
+        result = st.session_state.last_search
+        mode_label = "Article lookup" if result.mode == "article" else "Semantic search"
+        st.markdown(f"**Mode:** {mode_label}")
+
+        with st.expander("Search results", expanded=True):
+            if result.mode == "article":
+                if result.article_hits:
+                    for hit in result.article_hits[:10]:
+                        st.markdown(f"**{hit.rule_id}**")
+                        st.caption(f"{hit.document_id} Art. {hit.article}")
+                        if hit.primary_span:
+                            st.caption(f"{hit.primary_span[:100]}...")
+                        if st.button(
+                            "Open rule",
+                            key=f"search_open_{hit.rule_id}",
+                            type="secondary",
+                        ):
+                            st.session_state.selected_rule_id = hit.rule_id
+                            st.rerun()
+                        st.markdown("---")
+                else:
+                    st.info("No rules found for this article reference.")
+            else:  # semantic mode
+                if result.semantic_hits:
+                    for i, hit in enumerate(result.semantic_hits[:10]):
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            doc_label = hit.document_id or "Unknown"
+                            art_label = f"Art. {hit.article}" if hit.article else ""
+                            st.markdown(f"**{doc_label}** {art_label}")
+                            st.caption(hit.snippet[:150])
+                        with col2:
+                            # Score color
+                            score_color = "#28a745" if hit.score >= 0.5 else "#ffc107"
+                            st.markdown(
+                                f'<span style="color:{score_color};font-weight:bold;">'
+                                f'{hit.score:.2f}</span>',
+                                unsafe_allow_html=True,
+                            )
+                            if hit.rule_id:
+                                if st.button(
+                                    "Open",
+                                    key=f"semantic_open_{i}",
+                                    type="secondary",
+                                ):
+                                    st.session_state.selected_rule_id = hit.rule_id
+                                    st.rerun()
+                        st.markdown("---")
+                else:
+                    st.info("No results found.")
+
+        if st.button("Clear search", key="clear_search"):
+            st.session_state.last_search = None
+            st.rerun()
+
+    st.divider()
+
     # Quick stats
     st.header("Quick Stats")
 
@@ -230,6 +360,16 @@ with st.sidebar:
         st.metric("Review", needs_review_count)
     with col3:
         st.metric("Issues", inconsistent_count)
+
+    st.divider()
+
+    # Indexed Documents
+    st.header("Indexed Documents")
+    if st.session_state.indexed_documents:
+        for doc_id in st.session_state.indexed_documents:
+            st.markdown(f"✓ **{doc_id}**")
+    else:
+        st.info("No documents indexed. Add .txt files to `data/` folder.")
 
 
 # -----------------------------------------------------------------------------
@@ -309,8 +449,44 @@ else:
         else:
             st.warning("No decision tree defined for this rule.")
 
-        # Show DOT/Mermaid source in expander
-        with st.expander("View Source", expanded=False):
+        # Source & Context expander (replaces View Source)
+        with st.expander("Source & Context", expanded=False):
+            ctx = get_cached_rule_context(rule.rule_id)
+            if ctx:
+                # Header with document and article
+                st.markdown(f"**{ctx.document_id}** — Article {ctx.article or 'N/A'}")
+
+                # Primary span
+                st.markdown("**Primary span:**")
+                st.markdown(
+                    f'<div style="background:#f8f9fa;padding:12px;border-radius:4px;'
+                    f'border-left:3px solid #007bff;margin-bottom:12px;">'
+                    f'{ctx.primary_span}</div>',
+                    unsafe_allow_html=True,
+                )
+
+                # Before context
+                if ctx.before:
+                    with st.expander("Preceding context", expanded=False):
+                        for para in ctx.before:
+                            st.markdown(para)
+                            st.markdown("---")
+
+                # After context
+                if ctx.after:
+                    with st.expander("Following context", expanded=False):
+                        for para in ctx.after:
+                            st.markdown(para)
+                            st.markdown("---")
+
+                # Pages reference
+                if ctx.pages:
+                    st.caption(f"Pages: {', '.join(map(str, ctx.pages))}")
+            else:
+                st.warning("No source context available for this rule.")
+
+        # DOT/Mermaid source (for developers)
+        with st.expander("Tree Source (DOT/Mermaid)", expanded=False):
             tab1, tab2 = st.tabs(["Graphviz DOT", "Mermaid"])
             with tab1:
                 st.code(graph.to_dot(show_consistency=st.session_state.show_consistency), language="dot")
@@ -432,6 +608,37 @@ else:
 
                 if len(result.evidence) > 6:
                     st.caption(f"... and {len(result.evidence) - 6} more")
+
+        # Similar / related provisions expander
+        st.divider()
+        with st.expander("Similar / related provisions", expanded=False):
+            related = get_related_provisions(rule.rule_id, threshold=0.5, limit=10)
+            if not related:
+                st.info("No related provisions above similarity threshold 0.50.")
+            else:
+                for rp in related:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{rp.document_id}** Art. {rp.article or 'N/A'}")
+                        st.caption(rp.snippet[:150] if len(rp.snippet) > 150 else rp.snippet)
+                    with col2:
+                        # Score color: green for >= 0.85, amber for 0.50-0.85
+                        score_color = "#28a745" if rp.score >= 0.85 else "#ffc107"
+                        st.markdown(
+                            f'<div style="text-align:center;font-weight:bold;color:{score_color};">'
+                            f'{rp.score:.2f}</div>',
+                            unsafe_allow_html=True,
+                        )
+                        if rp.rule_id and rp.rule_id != rule.rule_id:
+                            if st.button(
+                                "Open",
+                                key=f"related_{rp.rule_id}",
+                                type="secondary",
+                                use_container_width=True,
+                            ):
+                                st.session_state.selected_rule_id = rp.rule_id
+                                st.rerun()
+                    st.markdown("---")
 
     st.divider()
 
