@@ -1,0 +1,118 @@
+# MiCA Stablecoin Reserve Requirements
+# Based on Regulation (EU) 2023/1114
+
+- rule_id: mica_art38_reserve_assets
+  version: "1.0"
+  description: |
+    Reserve asset requirements for asset-referenced tokens (ARTs) under MiCA Article 38.
+    Issuers must maintain a reserve of assets backing the ART.
+  effective_from: 2024-06-30
+  tags: [mica, stablecoin, art, reserves]
+
+  applies_if:
+    all:
+      - field: instrument_type
+        operator: in
+        value: [art, stablecoin]
+      - field: activity
+        operator: in
+        value: [public_offer, admission_to_trading]
+      - field: jurisdiction
+        operator: "=="
+        value: EU
+
+  decision_tree:
+    node_id: check_reserve_exists
+    condition:
+      field: has_reserve
+      operator: "=="
+      value: true
+    true_branch:
+      node_id: check_reserve_custody
+      condition:
+        field: reserve_custodian_authorized
+        operator: "=="
+        value: true
+      true_branch:
+        result: compliant
+        notes: "Reserve requirements satisfied"
+      false_branch:
+        result: non_compliant
+        obligations:
+          - id: appoint_custodian_art37
+            description: "Appoint authorized custodian for reserve assets per Article 37"
+    false_branch:
+      result: non_compliant
+      obligations:
+        - id: establish_reserve_art38
+          description: "Establish reserve of assets per Article 38"
+        - id: appoint_custodian_art37
+          description: "Appoint authorized custodian for reserve assets per Article 37"
+
+  source:
+    document_id: mica_2023
+    article: "38"
+    pages: [67, 68]
+
+  interpretation_notes: |
+    Article 38 requires ART issuers to maintain a reserve of assets at all times.
+    The reserve must be segregated and held by authorized custodians (Art. 37).
+
+- rule_id: mica_art45_significant_art
+  version: "1.0"
+  description: |
+    Additional requirements for significant asset-referenced tokens under MiCA Article 45.
+  effective_from: 2024-06-30
+  tags: [mica, stablecoin, art, significant]
+
+  applies_if:
+    all:
+      - field: instrument_type
+        operator: in
+        value: [art, stablecoin]
+      - field: is_significant
+        operator: "=="
+        value: true
+      - field: jurisdiction
+        operator: "=="
+        value: EU
+
+  decision_tree:
+    node_id: check_eba_supervision
+    condition:
+      field: under_eba_supervision
+      operator: "=="
+      value: true
+    true_branch:
+      node_id: check_enhanced_requirements
+      condition:
+        field: enhanced_requirements_met
+        operator: "=="
+        value: true
+      true_branch:
+        result: compliant
+        notes: "Enhanced requirements for significant ARTs satisfied"
+      false_branch:
+        result: non_compliant
+        obligations:
+          - id: higher_own_funds_art45
+            description: "Maintain higher own funds requirements per Article 45(5)"
+          - id: liquidity_stress_testing
+            description: "Implement liquidity management and stress testing per Article 45(4)"
+          - id: recovery_plan
+            description: "Prepare recovery plan per Article 46"
+    false_branch:
+      result: supervision_required
+      obligations:
+        - id: notify_eba
+          description: "Issuer must be notified of significant status and transferred to EBA supervision"
+
+  source:
+    document_id: mica_2023
+    article: "45"
+    pages: [72, 73]
+
+  interpretation_notes: |
+    Significant ARTs (determined by criteria in Art. 43) are subject to EBA supervision
+    and enhanced prudential requirements including higher capital and liquidity buffers.
+    Thresholds: >EUR 5bn market cap, >10m holders, >EUR 500m daily transactions.

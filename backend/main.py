@@ -1,0 +1,79 @@
+"""FastAPI application entry point."""
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from backend.config import get_settings
+from backend.api import qa_router, decide_router, rules_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler."""
+    # Startup
+    settings = get_settings()
+    print(f"Starting {settings.app_name}...")
+    print(f"Rules directory: {settings.rules_dir}")
+    print(f"Vector search enabled: {settings.enable_vector_search}")
+
+    yield
+
+    # Shutdown
+    print("Shutting down...")
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    settings = get_settings()
+
+    app = FastAPI(
+        title=settings.app_name,
+        description="Computational law platform for tokenized real-world assets (RWAs)",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include routers
+    app.include_router(qa_router)
+    app.include_router(decide_router)
+    app.include_router(rules_router)
+
+    @app.get("/")
+    async def root():
+        """Root endpoint."""
+        return {
+            "name": settings.app_name,
+            "version": "0.1.0",
+            "endpoints": {
+                "qa": "/qa/ask - Factual Q&A",
+                "decide": "/decide - Regulatory decisions",
+                "rules": "/rules - Rule inspection",
+            },
+        }
+
+    @app.get("/health")
+    async def health():
+        """Health check endpoint."""
+        return {"status": "healthy"}
+
+    return app
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

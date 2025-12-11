@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python -m pytest tests/test_rules.py -v)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python -m pytest:*)",
+      "Bash(.\\.venv\\Scripts\\python.exe -m pytest:*)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_consistency_engine.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest -v --tb=short)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_rag.py -v)",
+      "Bash(.venv/Scripts/python.exe:*)"
+    ]
+  }
+}
