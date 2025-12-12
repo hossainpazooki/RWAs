@@ -209,13 +209,31 @@ with st.sidebar:
 
     st.header("Rule Selection")
 
-    # Rule dropdown
-    rule_ids = get_rule_ids()
+    # Rule dropdown with better formatting
+    all_rules = st.session_state.rule_loader.get_all_rules()
+    rule_ids = [r.rule_id for r in all_rules]
+
+    # Build display map: rule_id -> formatted display string
+    rule_display_map = {}
+    for r in all_rules:
+        # Create a readable label: Source (Art. X) - short description
+        source_label = ""
+        if r.source:
+            doc = r.source.document_id.replace("_", " ").title()
+            if r.source.article:
+                source_label = f"{doc} Art.{r.source.article}"
+            else:
+                source_label = doc
+        desc = (r.description or "")[:40]
+        if len(r.description or "") > 40:
+            desc += "..."
+        rule_display_map[r.rule_id] = f"{r.rule_id}\n  {source_label} - {desc}" if desc else r.rule_id
 
     if rule_ids:
         selected = st.selectbox(
             "Select Rule",
             options=rule_ids,
+            format_func=lambda x: rule_display_map.get(x, x),
             index=0 if st.session_state.selected_rule_id is None else (
                 rule_ids.index(st.session_state.selected_rule_id)
                 if st.session_state.selected_rule_id in rule_ids
@@ -224,6 +242,9 @@ with st.sidebar:
             key="rule_selector",
         )
         st.session_state.selected_rule_id = selected
+
+        # Show rule count
+        st.caption(f"{len(rule_ids)} rules loaded")
     else:
         st.warning("No rules loaded. Add YAML rules to backend/rules/packs/")
         st.session_state.selected_rule_id = None
