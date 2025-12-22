@@ -186,53 +186,36 @@ def render_worklist_item(
     """
     from frontend.ui.review_helpers import get_status_color
 
-    # Build the display
     status_color = get_status_color(item.status)
 
-    # Container styling for selected state
-    border_color = "#007bff" if selected else "#ddd"
-    bg_color = "#f0f7ff" if selected else "white"
+    # Use a container with border styling
+    with st.container(border=True):
+        # Top row: emoji + rule_id + badges + confidence
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            # Build badge text
+            badge_text = ""
+            if show_issues and item.fail_count > 0:
+                badge_text += f" :red[{item.fail_count}F]"
+            if show_issues and item.warn_count > 0:
+                badge_text += f" :orange[{item.warn_count}W]"
 
-    # Build issue badges
-    issue_html = ""
-    if show_issues:
-        if item.fail_count > 0:
-            issue_html += f'<span style="background:#dc3545;color:white;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:4px;">{item.fail_count}F</span>'
-        if item.warn_count > 0:
-            issue_html += f'<span style="background:#ffc107;color:black;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:4px;">{item.warn_count}W</span>'
+            st.markdown(f"**{item.priority_emoji} {item.rule_id}**{badge_text}")
 
-    st.markdown(
-        f"""
-        <div style="
-            border: 2px solid {border_color};
-            border-left: 4px solid {status_color};
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin-bottom: 4px;
-            background: {bg_color};
-            cursor: pointer;
-        ">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                    <strong>{item.priority_emoji} {item.rule_id}</strong>
-                    {issue_html}
-                </div>
-                <span style="color:#666;font-size:0.85em;">{item.confidence:.0%}</span>
-            </div>
-            <div style="font-size:0.85em;color:#666;margin-top:2px;">
-                {item.source_label}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        with col2:
+            st.caption(f"{item.confidence:.0%}")
 
-    return st.button(
-        "Select",
-        key=f"wl_{item.rule_id}",
-        use_container_width=True,
-        type="secondary" if not selected else "primary",
-    )
+        # Source label
+        if item.source_label:
+            st.caption(item.source_label)
+
+        # Select button
+        return st.button(
+            "Select",
+            key=f"wl_{item.rule_id}",
+            use_container_width=True,
+            type="primary" if selected else "secondary",
+        )
 
 
 def render_worklist_panel(

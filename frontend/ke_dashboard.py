@@ -1,11 +1,11 @@
 """
-Knowledge Engineering Cockpit - Single-page rule workbench.
+KE Workbench - Rule verification and review dashboard.
 
-A unified dashboard for KE team to:
-- Navigate and review rules via the worklist
+A unified workbench for the Knowledge Engineering team to:
+- Navigate and review rules via the prioritized queue
 - Inspect decision trees with consistency overlays
-- Run trace tests and see highlighted paths
-- Review source context and submit human reviews
+- Run trace tests and validate decision logic
+- Review source context and submit human review decisions
 
 Run from repo root:
     streamlit run frontend/ke_dashboard.py
@@ -76,40 +76,35 @@ except ImportError:
 # -----------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="KE Cockpit",
+    page_title="KE Workbench",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="collapsed",  # Collapsed by default for cockpit
+    initial_sidebar_state="collapsed",
 )
 
-# Custom CSS for cockpit layout
+# Custom CSS for workbench layout
 st.markdown("""
 <style>
-    /* Tighter spacing for cockpit */
+    /* Compact header spacing */
     .block-container {
         padding-top: 1rem;
-        padding-bottom: 0rem;
+        padding-bottom: 1rem;
     }
-    /* Panel headers */
-    .panel-header {
-        font-weight: bold;
-        border-bottom: 2px solid #ddd;
-        padding-bottom: 0.5rem;
+    /* Better panel spacing */
+    [data-testid="column"] {
+        padding: 0 0.5rem;
+    }
+    /* Worklist containers */
+    [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
         margin-bottom: 0.5rem;
     }
-    /* Worklist item styling */
-    .worklist-item {
-        padding: 8px;
-        border-radius: 4px;
-        margin-bottom: 4px;
-        cursor: pointer;
+    /* Reduce button padding in worklist */
+    .stButton > button {
+        padding: 0.25rem 0.5rem;
     }
-    .worklist-item:hover {
-        background: #f0f0f0;
-    }
-    .worklist-item.selected {
-        background: #e3f2fd;
-        border-left: 3px solid #1976d2;
+    /* Caption styling */
+    .stCaption {
+        margin-top: 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -300,25 +295,33 @@ if not st.session_state.rag_initialized:
 # -----------------------------------------------------------------------------
 
 # Header row
-header_col1, header_col2, header_col3 = st.columns([3, 1, 1])
+st.markdown("## ⚖️ KE Workbench")
+st.markdown(
+    """
+    <p style="color:#555;margin-top:-10px;margin-bottom:20px;">
+    <strong>Workflow:</strong> Select a rule from the queue → Review its decision tree and source context →
+    Run trace tests to validate logic → Submit your review decision.
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
+
+header_col1, header_col2 = st.columns([2, 1])
 
 with header_col1:
-    st.markdown("## ⚖️ KE Cockpit")
+    stats = get_stats()
+    st.caption(f"📊 {stats['total']} rules | ✓ {stats['verified']} verified | ⚠️ {stats['needs_review']} needs review | ✗ {stats['inconsistent']} inconsistent")
 
 with header_col2:
-    stats = get_stats()
-    st.caption(f"📊 {stats['total']} rules | ✓ {stats['verified']} | ⚠️ {stats['needs_review']} | ✗ {stats['inconsistent']}")
-
-with header_col3:
     col_a, col_b = st.columns(2)
     with col_a:
-        if st.button("Verify All", use_container_width=True):
+        if st.button("🔄 Verify All", use_container_width=True):
             with st.spinner("Verifying all rules..."):
                 count = verify_all_rules()
             st.success(f"Verified {count} rules")
             st.rerun()
     with col_b:
-        if st.button("Reset", use_container_width=True):
+        if st.button("↺ Reset", use_container_width=True):
             reset_selection()
             st.rerun()
 
@@ -825,4 +828,4 @@ with right_col:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.caption("KE Cockpit v0.3 | Internal Use Only")
+st.caption("KE Workbench v1.0 | Internal Use Only")
