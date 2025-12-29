@@ -1,1 +1,1 @@
-"""Test suite for Droit regulatory reasoning system."""
+"""Test suite for regulatory reasoning system."""

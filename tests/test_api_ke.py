@@ -26,6 +26,13 @@ def ke_client(tmp_path: Path):
     from backend.api import ke_router
     from backend.api import routes_ke
 
+    # Save original state
+    original_rule_loader = routes_ke._rule_loader
+    original_consistency_engine = routes_ke._consistency_engine
+    original_analyzer = routes_ke._analyzer
+    original_drift_detector = routes_ke._drift_detector
+    original_context_retriever = routes_ke._context_retriever
+
     # Reset module state
     routes_ke._rule_loader = None
     routes_ke._consistency_engine = None
@@ -100,7 +107,14 @@ def ke_client(tmp_path: Path):
     app = FastAPI()
     app.include_router(ke_router)
 
-    return TestClient(app)
+    yield TestClient(app)
+
+    # Restore original state
+    routes_ke._rule_loader = original_rule_loader
+    routes_ke._consistency_engine = original_consistency_engine
+    routes_ke._analyzer = original_analyzer
+    routes_ke._drift_detector = original_drift_detector
+    routes_ke._context_retriever = original_context_retriever
 
 
 # =============================================================================

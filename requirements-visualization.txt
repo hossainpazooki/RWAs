@@ -1,4 +1,4 @@
-# Optional visualization dependencies for Droit KE Workbench
+# Optional visualization dependencies for KE Workbench
 # Install with: pip install -r requirements-visualization.txt
 #
 # NOTE: The tree visualizations use a custom HTML renderer that works

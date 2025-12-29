@@ -1,4 +1,4 @@
-"""Droit - Computational law platform for tokenized RWAs.
+"""Regulatory KE Workbench - Computational law platform for tokenized RWAs.
 
 This module provides the core regulatory reasoning engine.
 All components are pure Python - no OCaml required at runtime.

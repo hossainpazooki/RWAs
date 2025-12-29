@@ -1,14 +1,14 @@
-# Claude Code Project: Droit / Regulatory Q&A System
+# Claude Code Project: Regulatory KE Workbench
 
 ## Overview
 
-This repo is a miniature **computational law system** for tokenized real-world assets (RWAs).
+This repo is a **computational law system** for tokenized real-world assets (RWAs).
 It has layered architecture:
 
 - Layer 1–2 (ontology + rule DSL) in **OCaml** under `ocaml/core/`
 - Layer 3+ (decision engine, API, RAG) in **Python** under `backend/`
 
-The goal is Droit-style: executable legal logic, traceable decisions, strong typing, and clear documentation.
+The goal: executable legal logic, traceable decisions, strong typing, and clear documentation.
 
 ## Project structure (desired)
 

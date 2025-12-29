@@ -1,6 +1,6 @@
 # Engine Design: Internal Knowledge Engineering Workbench
 
-This document describes the architecture of the internal Knowledge Engineering (KE) workbench built on top of the Droit regulatory reasoning system.
+This document describes the architecture of the internal Knowledge Engineering (KE) workbench for regulatory reasoning.
 
 ## System Overview
 

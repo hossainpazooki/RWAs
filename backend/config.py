@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
     # API
-    app_name: str = "Droit"
+    app_name: str = "Regulatory KE Workbench"
     debug: bool = False
 
     # Optional ML features

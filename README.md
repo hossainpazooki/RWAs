@@ -1,8 +1,8 @@
-# Droit
+# Regulatory Knowledge Engineering Workbench
 
-**Regulatory Knowledge Engineering Workbench for MiCA, RWA Tokenization, and Stablecoin Frameworks**
+**A Computational Law Platform for MiCA, RWA Tokenization, and Stablecoin Frameworks**
 
-A computational law platform that transforms regulatory documents into executable knowledge through ontology extraction, declarative rules, and traceable decision logic.
+Transforms regulatory documents into executable knowledge through ontology extraction, declarative rules, and traceable decision logic.
 
 ---
 
@@ -10,7 +10,7 @@ A computational law platform that transforms regulatory documents into executabl
 
 Financial regulation is complex, multi-jurisdictional, and constantly evolving. Traditional compliance relies on legal memos and manual interpretation—approaches that don't scale and can't be audited systematically.
 
-**Droit** takes a different approach: encode regulations as *executable rules* with full traceability back to source legal text. Each decision produces a machine-readable trace showing exactly which provisions applied and why. This enables:
+This system takes a different approach: encode regulations as *executable rules* with full traceability back to source legal text. Each decision produces a machine-readable trace showing exactly which provisions applied and why. This enables:
 
 - **Automated compliance checking** against real regulatory frameworks (MiCA, DLT Pilot, GENIUS Act)
 - **Knowledge engineering workflows** for legal teams to model, verify, and maintain rules
@@ -33,29 +33,29 @@ flowchart TB
     end
 
     subgraph Core["Core Engine"]
-        ONT[Ontology Layer<br/>Actor, Instrument, Activity, Provision]
-        DSL[Rule DSL<br/>YAML Rulebooks]
-        DE[Decision Engine<br/>Trace Generation]
-        CE[Consistency Engine<br/>Tier 0-4 Verification]
+        ONT[Ontology Layer]
+        DSL[Rule DSL]
+        DE[Decision Engine]
+        CE[Consistency Engine]
     end
 
     subgraph Production["Production Layer"]
-        DB[(SQLite/PostgreSQL<br/>Rules, Verifications, Reviews)]
-        COMP[Compiler<br/>AST → IR]
-        IDX2[Premise Index<br/>O(1) Rule Lookup]
-        RT[Runtime Executor<br/>Linear Evaluation]
-        CACHE[IR Cache<br/>In-Memory]
+        DB[(Database)]
+        COMP[Compiler]
+        IDX2[Premise Index]
+        RT[Runtime]
+        CACHE[IR Cache]
     end
 
     subgraph RAG["Internal RAG"]
-        IDX[Document Index<br/>BM25 + Optional Vectors]
-        CTX[Context Retrieval<br/>Source Spans, Related Provisions]
+        IDX[Document Index]
+        CTX[Context Retrieval]
     end
 
     subgraph UI["Interfaces"]
-        API[FastAPI<br/>/decide, /rules, /ke/*, /v2/*]
-        ST[Streamlit KE Workbench<br/>Decision Trees, Evidence, Review Queue]
-        CH[Charts<br/>Rulebook Outline, Coverage, Ontology]
+        API[FastAPI]
+        ST[Streamlit Workbench]
+        CH[Charts]
     end
 
     Corpus --> IDX

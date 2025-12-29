@@ -1,6 +1,6 @@
 # Knowledge Model
 
-This document describes the ontology and knowledge representation used in the Droit regulatory reasoning system.
+This document describes the ontology and knowledge representation used in the regulatory reasoning system.
 
 ## Overview
 

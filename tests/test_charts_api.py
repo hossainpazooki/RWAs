@@ -37,7 +37,7 @@ class TestRulebookOutlineChart:
         data = response.json()
         assert data["chart_type"] == "rulebook_outline"
         assert "data" in data
-        assert data["data"]["title"] == "Rulebook"
+        assert data["data"]["title"] == "Legal Corpus & Rulebook"
         assert "supertree_available" in data
 
     def test_get_rulebook_outline_html(self, client):
