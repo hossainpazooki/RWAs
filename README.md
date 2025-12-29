@@ -39,13 +39,21 @@ flowchart TB
         CE[Consistency Engine<br/>Tier 0-4 Verification]
     end
 
+    subgraph Production["Production Layer"]
+        DB[(SQLite/PostgreSQL<br/>Rules, Verifications, Reviews)]
+        COMP[Compiler<br/>AST → IR]
+        IDX2[Premise Index<br/>O(1) Rule Lookup]
+        RT[Runtime Executor<br/>Linear Evaluation]
+        CACHE[IR Cache<br/>In-Memory]
+    end
+
     subgraph RAG["Internal RAG"]
         IDX[Document Index<br/>BM25 + Optional Vectors]
         CTX[Context Retrieval<br/>Source Spans, Related Provisions]
     end
 
     subgraph UI["Interfaces"]
-        API[FastAPI<br/>/decide, /rules, /ke/*]
+        API[FastAPI<br/>/decide, /rules, /ke/*, /v2/*]
         ST[Streamlit KE Workbench<br/>Decision Trees, Evidence, Review Queue]
         CH[Charts<br/>Rulebook Outline, Coverage, Ontology]
     end
@@ -55,7 +63,14 @@ flowchart TB
     CTX --> CE
     ONT --> DSL
     DSL --> DE
+    DSL --> COMP
+    COMP --> DB
+    COMP --> IDX2
+    DB --> RT
+    IDX2 --> RT
+    CACHE --> RT
     DE --> API
+    RT --> API
     CE --> API
     API --> ST
     ST --> CH
@@ -70,6 +85,9 @@ flowchart TB
 | **Rule DSL** | YAML-based declarative rules with decision trees | `backend/rules/`, `ocaml/core/rule_dsl.ml` |
 | **Decision Engine** | Evaluates scenarios, produces traces and obligations | `backend/rules/engine.py` |
 | **Consistency Engine** | Tier 0-4 verification of rules against source text | `backend/verify/consistency_engine.py` |
+| **Persistence** | SQLite database for rules, verifications, reviews | `backend/persistence/` |
+| **Compiler** | Compiles rules to IR for efficient execution | `backend/compiler/` |
+| **Runtime** | Linear IR evaluation with O(1) rule lookup | `backend/runtime/` |
 | **Internal RAG** | Context retrieval for KE workflows (not public Q&A) | `backend/rag/rule_context.py` |
 | **KE Workbench** | Streamlit UI for rule inspection and review | `frontend/ke_dashboard.py` |
 | **Charts** | Interactive tree visualizations | `backend/visualization/`, `frontend/pages/charts.py` |
@@ -81,6 +99,8 @@ flowchart TB
 - **Multi-rulebook support** — MiCA (EU crypto-assets), RWA tokenization, DLT Pilot Regime, GENIUS Act (US stablecoins)
 - **Executable rules with decision traces** — Every evaluation produces a step-by-step trace linking back to source provisions
 - **Tiered semantic consistency checks** — Tier 0 (schema), Tier 1 (lexical), Tier 2-4 (semantic/NLI, stub)
+- **Production-grade architecture** — Compiled IR, O(1) rule lookup via premise index, linear evaluation
+- **Database persistence** — SQLite (PostgreSQL-compatible) for rules, verification results, and human reviews
 - **Internal RAG for legal context** — Source text retrieval, related provisions, coverage gap detection
 - **KE workbench** — Decision tree viewer, evidence panel, review queue, analytics dashboard
 - **Interactive charts** — Rulebook outline, ontology browser, corpus-rule links, legal corpus coverage
@@ -147,13 +167,17 @@ The workbench opens at `http://localhost:8501` with:
 ### Run API Server (Optional)
 
 ```bash
-uvicorn backend.api.main:app --reload
+uvicorn backend.main:app --reload
 ```
 
 API available at `http://localhost:8000` with endpoints:
 - `POST /decide` — Evaluate scenario against rules
 - `GET /rules` — List loaded rules
 - `GET /ke/*` — Internal KE endpoints
+- `POST /v2/migrate` — Migrate YAML rules to database
+- `POST /v2/rules/compile` — Compile all rules to IR
+- `POST /v2/rules/{id}/evaluate` — Evaluate with compiled IR
+- `POST /v2/evaluate` — Batch evaluation with O(1) lookup
 
 ### Optional Dependencies
 

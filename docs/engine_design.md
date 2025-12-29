@@ -29,6 +29,9 @@ The workbench provides tools for Knowledge Engineers to:
 │              Layer 3A: Symbolic Decision Engine                 │
 │          (DecisionEngine, RuleLoader, condition eval)           │
 ├─────────────────────────────────────────────────────────────────┤
+│                   Production Layer                              │
+│   (Persistence, Compiler, Runtime, Premise Index, IR Cache)     │
+├─────────────────────────────────────────────────────────────────┤
 │                Layer 2: Rule DSL (YAML + Pydantic)              │
 │           (Rule, ConditionSpec, DecisionTree, etc.)             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -64,6 +67,161 @@ class DecisionResult:
     obligations: list[Obligation]
     rule_metadata: RuleMetadata  # Includes consistency status
 ```
+
+## Production Layer: Persistence, Compiler, and Runtime
+
+The production layer provides compile-time/runtime separation for efficient rule evaluation with O(1) lookup and linear condition evaluation.
+
+### Components
+
+| Component | Module | Purpose |
+|-----------|--------|---------|
+| **Database** | `backend/persistence/database.py` | SQLite (PostgreSQL-compatible) connection |
+| **Rule Repository** | `backend/persistence/repositories/rule_repo.py` | Rule CRUD, premise index storage |
+| **Verification Repository** | `backend/persistence/repositories/verification_repo.py` | Verification results, human reviews |
+| **Compiler** | `backend/compiler/compiler.py` | AST → IR compilation |
+| **IR Types** | `backend/compiler/ir.py` | Intermediate representation models |
+| **Premise Index** | `backend/compiler/premise_index.py` | Inverted index for O(1) lookup |
+| **Optimizer** | `backend/compiler/optimizer.py` | Condition flattening, selectivity ordering |
+| **Runtime** | `backend/runtime/executor.py` | Linear IR evaluation |
+| **IR Cache** | `backend/runtime/cache.py` | Thread-safe in-memory caching |
+| **Trace** | `backend/runtime/trace.py` | Execution tracing for auditability |
+
+### Database Schema
+
+```sql
+-- Core rule storage
+CREATE TABLE rules (
+    id TEXT PRIMARY KEY,
+    rule_id TEXT UNIQUE NOT NULL,
+    version INTEGER DEFAULT 1,
+    content_yaml TEXT NOT NULL,
+    content_json TEXT,
+    rule_ir TEXT,                   -- Compiled IR (JSON)
+    compiled_at TEXT,
+    source_document_id TEXT,
+    source_article TEXT,
+    is_active INTEGER DEFAULT 1
+);
+
+-- Premise index for O(1) lookup
+CREATE TABLE rule_premise_index (
+    premise_key TEXT NOT NULL,      -- e.g., "instrument_type:art"
+    rule_id TEXT NOT NULL,
+    PRIMARY KEY (premise_key, rule_id)
+);
+
+-- Verification results
+CREATE TABLE verification_results (
+    id TEXT PRIMARY KEY,
+    rule_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    confidence REAL,
+    verified_at TEXT,
+    verified_by TEXT
+);
+
+-- Evidence records
+CREATE TABLE verification_evidence (
+    id TEXT PRIMARY KEY,
+    verification_id TEXT NOT NULL,
+    tier INTEGER NOT NULL,
+    category TEXT NOT NULL,
+    label TEXT NOT NULL,
+    score REAL,
+    details TEXT
+);
+
+-- Human reviews
+CREATE TABLE reviews (
+    id TEXT PRIMARY KEY,
+    rule_id TEXT NOT NULL,
+    reviewer_id TEXT NOT NULL,
+    decision TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT
+);
+```
+
+### Intermediate Representation (IR)
+
+Rules are compiled to IR for efficient runtime execution:
+
+```python
+class RuleIR(BaseModel):
+    rule_id: str
+    version: int
+    ir_version: int = 1
+
+    # O(1) lookup keys
+    premise_keys: list[str]  # ["instrument_type:art", "activity:public_offer"]
+
+    # Flattened applicability checks
+    applicability_checks: list[CompiledCheck]
+    applicability_mode: Literal['all', 'any']
+
+    # Decision table (replaces tree traversal)
+    decision_table: list[DecisionEntry]
+
+    compiled_at: str
+    source_hash: str
+```
+
+### Premise Index
+
+The premise index enables O(1) rule candidate lookup:
+
+```python
+# Given facts: {"instrument_type": "art", "activity": "public_offer"}
+# Build premise keys: ["instrument_type:art", "activity:public_offer"]
+# Lookup: O(1) set intersection → candidate rule IDs
+```
+
+### Compilation Flow
+
+```
+YAML Rule → Parse (RuleLoader) → Rule AST → Compile (RuleCompiler) → RuleIR
+                                                ↓
+                              Store IR + Premise Keys in Database
+```
+
+### Runtime Execution Flow
+
+```
+Facts → Premise Index Lookup (O(1)) → Candidate Rules
+                ↓
+    Load IR from Cache/Database
+                ↓
+    Linear Applicability Check → Decision Table Match
+                ↓
+           DecisionResult + Trace
+```
+
+### API Endpoints (v2)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v2/migrate` | POST | Migrate YAML rules to database |
+| `/v2/status` | GET | Database statistics |
+| `/v2/rules/{id}/compile` | POST | Compile single rule to IR |
+| `/v2/rules/compile` | POST | Compile all rules |
+| `/v2/rules/{id}/evaluate` | POST | Evaluate with compiled IR |
+| `/v2/evaluate` | POST | Batch evaluation with premise index |
+| `/v2/cache/stats` | GET | IR cache statistics |
+| `/v2/cache/clear` | POST | Clear IR cache |
+| `/v2/cache/preload` | POST | Preload all IR to cache |
+| `/v2/index/stats` | GET | Premise index statistics |
+| `/v2/index/rebuild` | POST | Rebuild premise index |
+| `/v2/index/lookup` | GET | Look up rules by premise |
+
+### Performance Characteristics
+
+| Operation | Original Engine | Production Runtime |
+|-----------|----------------|-------------------|
+| Rule lookup | O(n) scan | O(1) premise index |
+| Condition eval | Recursive tree | Linear check array |
+| 'in' operator | O(n) list scan | O(1) set lookup |
+| Rule load | YAML parse | IR deserialization |
 
 ## Layer 3B: Semantic Consistency Engine
 
@@ -343,6 +501,9 @@ The workbench has comprehensive test coverage:
 | `test_rag_internal.py` | Context retrieval, cross-references |
 | `test_analytics.py` | Error patterns, drift detection |
 | `test_api_ke.py` | All KE endpoints |
+| `test_persistence.py` | Database CRUD, migration, premise index |
+| `test_compiler.py` | IR generation, premise extraction, optimizer |
+| `test_runtime.py` | IR execution, cache, trace generation |
 
 Run all tests:
 ```bash
