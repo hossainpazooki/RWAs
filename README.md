@@ -281,6 +281,25 @@ Access via sidebar navigation to see:
 - **Ontology Browser**: Actor/Instrument/Activity type hierarchy
 - **Corpus Links**: Document → Article → Rule traceability
 
+### Production Architecture Demo
+
+Access via sidebar navigation (`Production Demo`) to explore:
+
+| Section | What It Shows |
+|---------|---------------|
+| **Architecture Overview** | Side-by-side comparison of traditional O(n) vs production O(1) lookup |
+| **Compile Rules** | Transform YAML rules to compiled IR with premise keys |
+| **Premise Index** | Inverted index statistics and contents (field:value → rule_ids) |
+| **IR Cache** | Cache hit/miss rates and memory statistics |
+| **Performance Comparison** | Real-time benchmarking of single scenario evaluation |
+| **Batch Evaluation** | Compare throughput for 10-100 scenarios |
+
+**Demo Workflow:**
+1. Click **Compile All Rules** to build IR and premise index
+2. Configure a test scenario (instrument type, jurisdiction, activity)
+3. Click **Run Performance Comparison** to see speedup metrics
+4. Try **Batch Evaluation** to see throughput at scale
+
 ---
 
 ## Getting Started
@@ -362,9 +381,10 @@ RWAs/
 ├── backend/
 │   ├── ontology/          # Domain types (Actor, Instrument, Provision, etc.)
 │   ├── rules/             # YAML rule files + decision engine
-│   │   ├── mica_authorization.yaml
-│   │   ├── mica_stablecoin.yaml
-│   │   └── rwa_authorization.yaml
+│   │   ├── mica_authorization.yaml   # MiCA public offer rules (3 rules)
+│   │   ├── mica_stablecoin.yaml      # MiCA stablecoin/ART/EMT (6 rules)
+│   │   ├── genius_stablecoin.yaml    # GENIUS Act US stablecoins (6 rules)
+│   │   └── rwa_authorization.yaml    # RWA tokenization (2 rules)
 │   ├── verify/            # Semantic consistency engine
 │   ├── analytics/         # Error patterns, drift detection
 │   ├── rag/               # Internal retrieval (BM25, context)
