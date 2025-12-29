@@ -89,8 +89,8 @@ flowchart TB
 | **Compiler** | Compiles rules to IR for efficient execution | `backend/compiler/` |
 | **Runtime** | Linear IR evaluation with O(1) rule lookup | `backend/runtime/` |
 | **Internal RAG** | Context retrieval for KE workflows (not public Q&A) | `backend/rag/rule_context.py` |
-| **KE Workbench** | Streamlit UI for rule inspection and review | `frontend/ke_dashboard.py` |
-| **Charts** | Interactive tree visualizations | `backend/visualization/`, `frontend/pages/charts.py` |
+| **KE Workbench** | Streamlit UI for rule inspection and review | `frontend/pages/1_KE_Workbench.py` |
+| **Production Demo** | Compiled IR, premise index, performance benchmarks | `frontend/pages/2_Production_Demo.py` |
 
 ---
 
@@ -110,7 +110,9 @@ flowchart TB
 
 ## KE Workbench User Guide
 
-The Knowledge Engineering (KE) Workbench is a Streamlit application for inspecting, verifying, and reviewing regulatory rules.
+The Knowledge Engineering (KE) Workbench is a Streamlit application for inspecting, verifying, and reviewing regulatory rules. Access it via the sidebar navigation after launching the app.
+
+**Live Demo:** [pazooki.streamlit.app](https://pazooki.streamlit.app)
 
 ### Workbench Layout
 
@@ -335,17 +337,19 @@ pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-### Launch KE Workbench
+### Launch Application
 
 ```bash
-streamlit run frontend/ke_dashboard.py
+streamlit run frontend/Home.py
 ```
 
-The workbench opens at `http://localhost:8501` with:
-- Rule selection and decision tree visualization
-- Consistency evidence panel
-- Source context and related provisions
-- Charts page for rulebook/coverage analysis
+The app opens at `http://localhost:8501` with three pages:
+
+| Page | Description |
+|------|-------------|
+| **Home** | Landing page with overview, instructions, and quick navigation |
+| **KE Workbench** | Rule inspection, decision trees, trace testing, verification |
+| **Production Demo** | Compiled IR, premise index, performance benchmarks |
 
 ### Run API Server (Optional)
 
@@ -391,14 +395,16 @@ RWAs/
 │   ├── visualization/     # Tree adapters, chart rendering
 │   └── api/               # FastAPI routes
 ├── frontend/
-│   ├── ke_dashboard.py    # Main Streamlit app
-│   └── pages/             # Charts, Review Queue
+│   ├── Home.py            # Main entry point (landing page)
+│   └── pages/
+│       ├── 1_KE_Workbench.py      # Rule inspection & verification
+│       └── 2_Production_Demo.py   # Production architecture demo
 ├── ocaml/
 │   └── core/              # OCaml ontology + rule DSL (source of truth)
 ├── data/
 │   └── legal/             # Legal corpus (MiCA, DLT Pilot, GENIUS)
 ├── docs/                  # Design documentation
-├── tests/                 # Test suite (375+ tests)
+├── tests/                 # Test suite (450+ tests)
 └── requirements.txt
 ```
 
@@ -452,10 +458,11 @@ Context retrieval for KE workflows (not public-facing):
 
 Tools for knowledge engineers:
 
-- **Streamlit workbench**: Decision tree viewer, evidence panel, review queue
-- **Charts**: Rulebook outline, ontology browser, corpus coverage
+- **Home page**: Overview, quick navigation, architecture diagrams
+- **KE Workbench**: Decision tree viewer, evidence panel, trace testing, review queue
+- **Production Demo**: Compiled IR explorer, premise index, performance benchmarks
 - **FastAPI /ke endpoints**: Programmatic access to verification and analytics
-- See `frontend/ke_dashboard.py`, `backend/api/routes_ke.py`
+- See `frontend/Home.py`, `frontend/pages/`, `backend/api/routes_ke.py`
 
 ---
 
