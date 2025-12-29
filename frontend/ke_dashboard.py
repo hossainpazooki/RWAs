@@ -610,7 +610,7 @@ with center_col:
                 trace_data = []
                 for step in result.trace:
                     trace_data.append({
-                        "Node": step.node_path,
+                        "Node": step.node,
                         "Condition": step.condition,
                         "Result": "✓" if step.result else "✗",
                         "Value": str(step.value_checked),

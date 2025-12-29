@@ -108,14 +108,178 @@ flowchart TB
 
 ---
 
-## Screenshots
+## KE Workbench User Guide
 
-<!-- TODO: Add actual screenshots -->
-![KE Workbench - Decision Tree with Evidence Panel](docs/img/ke-workbench.png)
-*Decision tree visualization with consistency overlay and rule-level evidence*
+The Knowledge Engineering (KE) Workbench is a Streamlit application for inspecting, verifying, and reviewing regulatory rules.
 
-![Charts - Rulebook Outline](docs/img/rulebook-outline.png)
-*Hierarchical view of legal corpus with article-level rule coverage*
+### Workbench Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ⚖️ KE Workbench                           [🔍 Verify All] [↺ Reset]        │
+│  Workflow: Queue → Review → Test → Submit                                   │
+│  📊 7 rules | ✓ 0 verified | ⚠ 7 needs review | ✗ 0 inconsistent           │
+├──────────────┬────────────────────────────────────┬─────────────────────────┤
+│              │                                    │                         │
+│  📋 RULES    │     RULE DETAILS                   │  📖 CONTEXT             │
+│              │                                    │                         │
+│  ○ Queue     │  mica_art36_public_offer_auth      │  mica_2023 Art. 36      │
+│  ● Navigator │  ┌─────────┬─────────┬──────────┐  │                         │
+│              │  │Decision │Trace/   │Analytics │  │  ▼ Primary text         │
+│  ▼ Mica 2023 │  │Tree     │Test     │          │  │  "Any person intending  │
+│    ? rule_1  │  └─────────┴─────────┴──────────┘  │   to offer crypto-      │
+│    ? rule_2  │                                    │   assets..."            │
+│  ▼ Rwa 2025  │  [Tree visualization or           │                         │
+│    ? rule_3  │   test interface or               │  ▼ Related provisions   │
+│              │   analytics charts]               │  • Art. 37 (0.82)       │
+│  ─────────── │                                    │  • Art. 48 (0.71)       │
+│  📊 Insights │                                    │                         │
+│  Total: 7    │                                    │                         │
+│  Verified: 0 │                                    │                         │
+│              │                                    │                         │
+└──────────────┴────────────────────────────────────┴─────────────────────────┘
+```
+
+### Workflow Steps
+
+**Step 1: Select a Rule**
+- Use **Queue** view to see rules prioritized by verification status
+- Use **Navigator** view to browse by document hierarchy
+- Status indicators: `?` needs review, `✓` verified, `✗` inconsistent
+
+**Step 2: Review Decision Tree**
+- Visual tree shows rule's decision logic
+- Toggle **Overlay** to see consistency status on each node
+- Green = pass, Yellow = warning, Red = fail
+
+**Step 3: Run Trace Test**
+- Enter test scenario values in the **Trace/Test** tab
+- Click **Run Trace** to execute rule against scenario
+- View step-by-step evaluation path
+- Check if decision matches expected behavior
+
+**Step 4: Review Analytics**
+- **Analytics** tab shows verification evidence
+- Pie chart: Pass/Warn/Fail distribution
+- Evidence table: Tier, Category, Label, Score, Details
+- Confidence score: Weighted average of all checks
+
+**Step 5: Submit Review**
+- If rule behaves correctly, mark as verified
+- If issues found, mark as inconsistent with notes
+
+### Left Panel: Rules Selection
+
+| Mode | Description | Use When |
+|------|-------------|----------|
+| **Queue** | Rules sorted by urgency | Processing review backlog |
+| **Navigator** | Hierarchical by document | Exploring specific regulation |
+
+**Queue Filters:**
+- Status: `needs_review`, `unverified`, `inconsistent`, `all`
+- Document: Filter by source document (MiCA, RWA, etc.)
+
+**Navigator Structure:**
+```
+▼ Mica 2023 (4)
+  ? mica_art36_public_offer_authorization (Art.36(1))
+  ? mica_art38_reserve_assets (Art.38)
+  ? mica_art48_emt_authorization (Art.48)
+  ✓ mica_art45_significant_art (Art.45)
+▼ Rwa Eu 2025 (3)
+  ...
+```
+
+### Center Panel: Rule Details
+
+#### Decision Tree Tab
+
+```
+                    ┌─────────────────────┐
+                    │   check_exemption   │
+                    │ is_credit_inst==T   │
+                    └──────────┬──────────┘
+                         ┌─────┴─────┐
+                      TRUE         FALSE
+                         │           │
+                    ┌────┴────┐ ┌────┴────┐
+                    │ exempt  │ │  check  │
+                    │         │ │  auth   │
+                    └─────────┘ └────┬────┘
+                                ┌────┴────┐
+                             TRUE      FALSE
+                                │         │
+                           ┌────┴────┐ ┌──┴──┐
+                           │permitted│ │deny │
+                           └─────────┘ └─────┘
+```
+
+- **[Verify]** - Run consistency checks on this rule
+- **[Overlay ☑]** - Color nodes by consistency status
+
+#### Trace/Test Tab
+
+| Field | Input | Description |
+|-------|-------|-------------|
+| `instrument_type` | Dropdown | `art`, `emt`, `stablecoin`, etc. |
+| `activity` | Dropdown | `public_offer`, `admission_trading`, etc. |
+| `jurisdiction` | Text | `EU`, `US`, etc. |
+| `is_credit_institution` | Checkbox | Whether actor is licensed bank |
+| `authorized` | Checkbox | Whether already authorized |
+
+**Expected Outputs:**
+- **Decision**: `authorized`, `not_authorized`, `exempt`, etc.
+- **Trace Table**: Node → Condition → Result (✓/✗) → Value
+
+#### Analytics Tab
+
+```
+┌─────────────────────────────────────────────┐
+│  Pass: 6    Fail: 0    Warn: 6    Conf: 78% │
+├─────────────────────────────────────────────┤
+│         ┌──────────┐                        │
+│         │   50%    │ 50%   ■ Pass           │
+│         │  Green   │Yellow │ ■ Warning      │
+│         └──────────┘       │ ■ Fail         │
+├─────────────────────────────────────────────┤
+│  Evidence Details                           │
+│  Tier │ Category         │ Label │ Score   │
+│  ─────┼──────────────────┼───────┼──────── │
+│  0    │ schema_valid     │ pass  │ 100%    │
+│  0    │ required_fields  │ pass  │ 100%    │
+│  1    │ deontic_align    │ warn  │ 60%     │
+│  1    │ keyword_overlap  │ pass  │ 85%     │
+└─────────────────────────────────────────────┘
+```
+
+### Right Panel: Context
+
+- **Primary text**: Source legal provision text
+- **Document metadata**: Citation, jurisdiction, article reference
+- **Related provisions**: Similar rules ranked by similarity score
+
+### Header Actions
+
+| Button | Action | Effect |
+|--------|--------|--------|
+| **Verify All** | Run Tier 0-1 checks on all rules | Updates all verification statuses |
+| **Reset** | Clear all session state | Returns to initial view |
+
+### Quick Stats
+
+The **Insights** section shows:
+- **Total Rules**: Count of all loaded rules
+- **Needs Review**: Rules with warnings or unverified
+- **Verified**: Rules marked as consistent
+- **Inconsistent**: Rules with failed checks
+- **Progress bar**: Percentage verified
+
+### Charts Page
+
+Access via sidebar navigation to see:
+- **Rulebook Outline**: Hierarchical view of legal corpus with coverage
+- **Ontology Browser**: Actor/Instrument/Activity type hierarchy
+- **Corpus Links**: Document → Article → Rule traceability
 
 ---
 
