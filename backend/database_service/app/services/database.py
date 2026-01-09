@@ -53,8 +53,8 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
         conn.close()
 
 
-# Re-export SQLModel utilities from core for backwards compatibility
-from backend.core.database import get_engine, get_session, init_sqlmodel_tables
+# SQLModel utilities available via explicit import:
+#   from backend.core.database import get_engine, get_session, init_sqlmodel_tables
 
 
 def init_db() -> None:

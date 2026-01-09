@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
-from backend.database_service.app.services.database import get_session
+from backend.core.database import get_session
 from .schemas import RuleCreate, RuleUpdate, RuleRead, RuleList
 from .service import EmbeddingRuleService
 

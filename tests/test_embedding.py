@@ -6,7 +6,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.main import app
-from backend.database_service.app.services.database import get_session
+from backend.core.database import get_session
 from backend.rule_embedding_service.app.services.models import (
     EmbeddingRule,
     EmbeddingCondition,

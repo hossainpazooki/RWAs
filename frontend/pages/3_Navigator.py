@@ -25,10 +25,6 @@ from backend.rule_service.app.services.jurisdiction.pathway import (
     aggregate_obligations,
     estimate_timeline,
 )
-from backend.database_service.app.services.database import init_db_with_seed
-
-# Initialize database
-init_db_with_seed()
 
 # -----------------------------------------------------------------------------
 # Page Configuration
