@@ -14,24 +14,36 @@ flowchart TB
         LC3[GENIUS Act 2025]
     end
 
-    subgraph Core["Core Engine"]
-        ONT[Ontology Layer]
-        DSL[Rule DSL]
+    subgraph Core["core/"]
+        ONT[Ontology]
+        VIZ[Visualization]
+        CFG[Config]
+    end
+
+    subgraph RuleService["rule_service/"]
+        DSL[YAML Rules]
         DE[Decision Engine]
-        CE[Consistency Engine]
+        subgraph Jurisdiction["jurisdiction/"]
+            JR[Resolver]
+            JE[Evaluator]
+            CD[Conflicts]
+            PS[Pathway]
+        end
     end
 
-    subgraph Jurisdiction["Multi-Jurisdiction"]
-        JR[Resolver]
-        JE[Parallel Evaluator]
-        CD[Conflict Detection]
-        PS[Pathway Synthesis]
-    end
-
-    subgraph Production["Production Layer"]
+    subgraph DatabaseService["database_service/"]
         COMP[Compiler]
         IDX[Premise Index]
         CACHE[IR Cache]
+    end
+
+    subgraph VerifyService["verification_service/"]
+        CE[Consistency Engine]
+    end
+
+    subgraph RAGService["rag_service/"]
+        BM25[BM25 Index]
+        CTX[Context Helpers]
     end
 
     subgraph UI["Interfaces"]
@@ -40,6 +52,7 @@ flowchart TB
     end
 
     Corpus --> CE
+    Corpus --> BM25
     ONT --> DSL
     DSL --> DE
     DSL --> COMP
@@ -52,6 +65,8 @@ flowchart TB
     DE --> API
     PS --> API
     CE --> API
+    BM25 --> CTX
+    CTX --> API
     API --> ST
 ```
 
@@ -59,19 +74,46 @@ flowchart TB
 
 ```
 backend/
-├── ontology/       # Domain types (Actor, Instrument, Provision)
-├── rules/          # YAML rules + decision engine
-├── jurisdiction/   # Multi-jurisdiction (EU, UK, US)
-├── compiler/       # YAML → IR compilation
-├── verify/         # Semantic consistency engine
-└── api/            # FastAPI routes
+├── core/                    # Shared infrastructure
+│   ├── config.py            # Settings & feature flags
+│   ├── database.py          # SQLModel ORM utilities
+│   ├── ontology/            # Domain types (Actor, Instrument, Provision)
+│   ├── visualization/       # Tree rendering (Graphviz, Mermaid)
+│   └── api/                 # FastAPI routers
+│
+├── rule_service/            # Rule management & evaluation
+│   ├── data/                # YAML rule packs (MiCA, FCA, GENIUS)
+│   └── app/services/
+│       ├── loader.py        # YAML parsing
+│       ├── engine.py        # Decision engine
+│       └── jurisdiction/    # Multi-jurisdiction (resolver, evaluator, conflicts)
+│
+├── database_service/        # Persistence & compilation
+│   └── app/services/
+│       ├── compiler/        # YAML → IR compilation
+│       └── runtime/         # IR cache & execution
+│
+├── verification_service/    # Semantic consistency
+│   └── app/services/        # Tier 0-4 consistency checks
+│
+├── analytics_service/       # Error patterns & drift
+│   └── app/services/        # Pattern analysis, drift detection
+│
+├── rag_service/             # Retrieval-augmented context
+│   └── app/services/        # BM25 index, context helpers
+│
+└── rule_embedding_service/  # SQLModel rule CRUD API
+    └── app/services/        # Models, schemas, routes
 
 frontend/
-├── Home.py         # Landing page
-└── pages/          # KE Workbench, Production Demo, Navigator
+├── Home.py                  # Landing page
+└── pages/
+    ├── 1_KE_Workbench.py    # Rule verification & review
+    ├── 2_Production_Demo.py # IR compilation & benchmarks
+    └── 3_Navigator.py       # Cross-border compliance
 
-data/legal/         # Legal corpus (MiCA, FCA, GENIUS Act)
-docs/               # Design documentation
+data/legal/                  # Legal corpus (MiCA, FCA, GENIUS Act)
+docs/                        # Design documentation
 ```
 
 ## Regulatory Frameworks
