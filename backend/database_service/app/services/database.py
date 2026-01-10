@@ -255,6 +255,73 @@ CREATE TABLE IF NOT EXISTS rule_conflicts (
 );
 
 -- =============================================================================
+-- TEMPORAL VERSIONING (Temporal.io-inspired)
+-- =============================================================================
+
+-- Immutable rule version snapshots
+CREATE TABLE IF NOT EXISTS rule_versions (
+    id TEXT PRIMARY KEY,
+    rule_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    content_yaml TEXT NOT NULL,
+    content_json TEXT,
+    content_hash TEXT NOT NULL,
+    effective_from DATE,
+    effective_to DATE,
+    created_at TEXT NOT NULL,
+    created_by TEXT,
+    superseded_by INTEGER,
+    superseded_at TEXT,
+    jurisdiction_code VARCHAR(10),
+    regime_id VARCHAR(100),
+    UNIQUE(rule_id, version)
+);
+
+-- Event sourcing log for rule changes
+CREATE TABLE IF NOT EXISTS rule_events (
+    id TEXT PRIMARY KEY,
+    sequence_number INTEGER NOT NULL,
+    rule_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    event_type TEXT NOT NULL,  -- RuleCreated, RuleUpdated, RuleDeprecated
+    event_data TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    actor TEXT,
+    reason TEXT
+);
+
+-- =============================================================================
+-- JURISDICTION CONFIG (replaces hardcoded dictionaries)
+-- =============================================================================
+
+-- Step timelines for compliance pathways
+CREATE TABLE IF NOT EXISTS step_timelines (
+    step_id TEXT NOT NULL,
+    jurisdiction_code VARCHAR(10) DEFAULT '*',
+    min_days INTEGER NOT NULL,
+    max_days INTEGER NOT NULL,
+    description TEXT,
+    PRIMARY KEY (step_id, jurisdiction_code)
+);
+
+-- Step dependencies for compliance pathways
+CREATE TABLE IF NOT EXISTS step_dependencies (
+    step_id TEXT NOT NULL,
+    depends_on TEXT NOT NULL,
+    PRIMARY KEY (step_id, depends_on)
+);
+
+-- Obligation conflict pairs
+CREATE TABLE IF NOT EXISTS obligation_conflicts (
+    obligation_a TEXT NOT NULL,
+    obligation_b TEXT NOT NULL,
+    conflict_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    resolution_hint TEXT,
+    PRIMARY KEY (obligation_a, obligation_b)
+);
+
+-- =============================================================================
 -- INDEXES
 -- =============================================================================
 
@@ -285,6 +352,19 @@ CREATE INDEX IF NOT EXISTS idx_equivalence_to ON equivalence_determinations(to_j
 CREATE INDEX IF NOT EXISTS idx_equivalence_scope ON equivalence_determinations(scope, status);
 CREATE INDEX IF NOT EXISTS idx_conflicts_rules ON rule_conflicts(rule_id_a, rule_id_b);
 CREATE INDEX IF NOT EXISTS idx_conflicts_type ON rule_conflicts(conflict_type, severity);
+
+CREATE INDEX IF NOT EXISTS idx_rule_versions_rule ON rule_versions(rule_id);
+CREATE INDEX IF NOT EXISTS idx_rule_versions_effective ON rule_versions(rule_id, effective_from, effective_to);
+CREATE INDEX IF NOT EXISTS idx_rule_versions_hash ON rule_versions(content_hash);
+
+CREATE INDEX IF NOT EXISTS idx_rule_events_rule ON rule_events(rule_id);
+CREATE INDEX IF NOT EXISTS idx_rule_events_sequence ON rule_events(sequence_number);
+CREATE INDEX IF NOT EXISTS idx_rule_events_type ON rule_events(event_type, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_step_timelines_step ON step_timelines(step_id);
+CREATE INDEX IF NOT EXISTS idx_step_dependencies_step ON step_dependencies(step_id);
+CREATE INDEX IF NOT EXISTS idx_obligation_conflicts_a ON obligation_conflicts(obligation_a);
+CREATE INDEX IF NOT EXISTS idx_obligation_conflicts_b ON obligation_conflicts(obligation_b);
 """
 
 

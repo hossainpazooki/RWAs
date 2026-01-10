@@ -139,3 +139,62 @@ class RuleDetailResponse(BaseModel):
     applies_if: dict | None
     decision_tree: dict | None
     interpretation_notes: str | None
+
+
+# =============================================================================
+# Version Models
+# =============================================================================
+
+
+class RuleVersionResponse(BaseModel):
+    """A single rule version snapshot."""
+
+    id: str
+    rule_id: str
+    version: int
+    content_hash: str
+    effective_from: str | None
+    effective_to: str | None
+    created_at: str
+    created_by: str | None
+    superseded_by: int | None
+    superseded_at: str | None
+    jurisdiction_code: str | None
+    regime_id: str | None
+
+
+class RuleVersionListResponse(BaseModel):
+    """Response listing rule versions."""
+
+    rule_id: str
+    versions: list[RuleVersionResponse]
+    total: int
+
+
+class RuleVersionDetailResponse(RuleVersionResponse):
+    """Detailed version with content."""
+
+    content_yaml: str
+    content_json: str | None
+
+
+class RuleEventResponse(BaseModel):
+    """A rule lifecycle event."""
+
+    id: str
+    sequence_number: int | None
+    rule_id: str
+    version: int
+    event_type: str
+    event_data: dict[str, Any]
+    timestamp: str
+    actor: str | None
+    reason: str | None
+
+
+class RuleEventListResponse(BaseModel):
+    """Response listing rule events."""
+
+    rule_id: str
+    events: list[RuleEventResponse]
+    total: int

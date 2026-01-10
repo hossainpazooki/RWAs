@@ -144,3 +144,102 @@ class RuleList(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# =============================================================================
+# Story 3: Multi-Mode Similarity Search Schemas
+# =============================================================================
+
+
+class TextSearchRequest(BaseModel):
+    """Search rules by natural language query."""
+    query: str = Field(description="Natural language search query")
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+    min_similarity: float = Field(default=0.5, ge=0.0, le=1.0, description="Minimum similarity threshold")
+
+
+class EntitySearchRequest(BaseModel):
+    """Search rules by entity list (field names, operators)."""
+    entities: list[str] = Field(description="List of entities to search for (e.g., ['income', 'age'])")
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+
+
+class OutcomeSearchRequest(BaseModel):
+    """Search rules by decision outcome."""
+    outcome: str = Field(description="Decision outcome to search for (e.g., 'approved', 'eligible')")
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+
+
+class LegalSourceSearchRequest(BaseModel):
+    """Search rules by legal citation or source."""
+    citation: str = Field(description="Legal citation to search for")
+    document_id: Optional[str] = Field(default=None, description="Optional document ID filter")
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+
+
+class HybridSearchRequest(BaseModel):
+    """Search with custom embedding type weights."""
+    query: str = Field(description="Search query")
+    weights: dict[str, float] = Field(
+        description="Weights for each embedding type (e.g., {'semantic': 0.3, 'structural': 0.4})"
+    )
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+
+
+class SearchResult(BaseModel):
+    """Result from similarity search."""
+    rule_id: str
+    rule_name: str
+    score: float = Field(description="Similarity score (0-1, higher is more similar)")
+    embedding_type: str
+    matched_text: Optional[str] = None
+
+
+# =============================================================================
+# Story 4: Graph Embedding Schemas
+# =============================================================================
+
+
+class GraphSearchRequest(BaseModel):
+    """Search for rules with similar graph structures."""
+    rule_id: str = Field(description="Reference rule ID to find similar rules")
+    top_k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+
+
+class GraphComparisonRequest(BaseModel):
+    """Compare graph structures of two rules."""
+    rule_id_a: str = Field(description="First rule ID")
+    rule_id_b: str = Field(description="Second rule ID")
+
+
+class GraphNode(BaseModel):
+    """Node in a rule graph."""
+    id: str
+    type: str = Field(description="Node type (rule, condition, entity, decision, legal_source)")
+    label: str
+
+
+class GraphEdge(BaseModel):
+    """Edge in a rule graph."""
+    source: str
+    target: str
+    type: str = Field(description="Edge type (HAS_CONDITION, REFERENCES_ENTITY, etc.)")
+
+
+class RuleGraph(BaseModel):
+    """Graph representation of a rule."""
+    rule_id: str
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+    num_nodes: int
+    num_edges: int
+
+
+class GraphComparisonResult(BaseModel):
+    """Result of comparing two rule graphs."""
+    rule_id_a: str
+    rule_id_b: str
+    similarity_score: float = Field(description="Graph similarity (0-1)")
+    common_nodes: int
+    common_edges: int
+    structural_distance: float = Field(description="Graph edit distance normalized")

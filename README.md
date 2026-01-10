@@ -7,75 +7,138 @@ A computational law platform for MiCA, RWA tokenization, and stablecoin framewor
 ## Architecture
 
 ```mermaid
-flowchart TB
-    subgraph Corpus["Legal Corpus"]
-        LC1[MiCA 2023]
-        LC2[FCA Crypto 2024]
-        LC3[GENIUS Act 2025]
-    end
+%%{init: {
+  "flowchart": {
+    "nodeSpacing": 16,
+    "rankSpacing": 22,
+    "curve": "basis"
+  }
+}}%%
+%% padding(wrapper) + padding(child subgraph) + internal node spacing
+%% Whitespace comes from:
+%% - wrapper/cluster padding (subgraphs)
+%% - nested subgraph padding
+%% - nodeSpacing + rankSpacing
 
-    subgraph Core["core/"]
-        ONT[Ontology]
-        VIZ[Visualization]
-        CFG[Config]
-    end
+flowchart LR
 
-    subgraph RuleService["rule_service/"]
-        DSL[YAML Rules]
-        DE[Decision Engine]
-        subgraph Jurisdiction["jurisdiction/"]
-            JR[Resolver]
-            JE[Evaluator]
-            CD[Conflicts]
-            PS[Pathway]
-        end
-    end
+subgraph Input[" "]
+  direction TB
+  DSL[YAML Rules]
+  Corpus[Legal Corpus]
+end
 
-    subgraph DatabaseService["database_service/"]
-        COMP[Compiler]
-        IDX[Premise Index]
-        CACHE[IR Cache]
-    end
+subgraph MLWorkflows["ML workflows"]
+  direction LR
 
-    subgraph VerifyService["verification_service/"]
-        CE[Consistency Engine]
-    end
+  subgraph EmbeddingService["rule_embedding_service/"]
+    direction TB
+    GEN[Generator] --> EMB4[4-Type Embeddings]
+    EMB4 --> VS[Vector Search]
+    EMB4 -.- SEM[semantic]
+    EMB4 -.- STR[structural]
+    EMB4 -.- ENT[entity]
+    EMB4 -.- LEG[legal]
+    GEN --> GEMB[Graph Embedding]
+    GEMB --> N2V[Node2Vec]
+  end
 
-    subgraph RAGService["rag_service/"]
-        BM25[BM25 Index]
-        CTX[Context Helpers]
-    end
+  subgraph VerifyService["verification_service/"]
+    direction TB
+    CE[Consistency Engine]
+    CE --> T0[Tier 0: Schema]
+    CE --> T1[Tier 1: Semantic]
+    CE --> T2[Tier 2: Cross-rule]
+    CE --> T3[Tier 3: Temporal]
+    CE --> T4[Tier 4: External]
+  end
 
-    subgraph EmbeddingService["rule_embedding_service/"]
-        EMB[4-Type Embeddings]
-        VS[Vector Search]
-    end
+  subgraph RAGService["rag_service/"]
+    direction TB
+    BM25[BM25 Index]
+    BM25 --> CTX[Context Helpers]
+  end
+end
 
-    subgraph UI["Interfaces"]
-        API[FastAPI]
-        ST[Streamlit UI]
-    end
+subgraph CoreEngine["Core rule execution"]
+  direction LR
 
-    Corpus --> CE
-    Corpus --> BM25
-    ONT --> DSL
-    DSL --> DE
-    DSL --> COMP
-    DSL --> EMB
-    COMP --> IDX
-    COMP --> CACHE
-    DE --> JE
-    JR --> JE
-    JE --> CD
-    CD --> PS
-    EMB --> VS
-    VS --> API
-    DE --> API
-    PS --> API
-    CE --> API
-    BM25 --> CTX
-    CTX --> API
-    API --> ST
+  subgraph RuleService["rule_service/"]
+    direction TB
+    VER[Version Service]
+    DE[Decision Engine]
+    subgraph Jurisdiction["jurisdiction/"]
+      JR[Resolver] --> JE[Evaluator]
+      JE --> CD[Conflicts] --> PS[Pathway]
+    end
+  end
+
+  subgraph DatabaseService["database_service/"]
+    direction TB
+    COMP[Compiler] --> IDX[Premise Index]
+    COMP --> CACHE[IR Cache]
+    VREPO[Version Repo]
+    EREPO[Event Repo]
+    JCFG[Jurisdiction Config]
+    ESTORE[Embedding Store]
+    GSTORE[Graph Store]
+  end
+end
+
+subgraph Output[" "]
+  direction TB
+  subgraph API["FastAPI"]
+    direction TB
+    R1["/decide"]
+    R2["/rules"]
+    R3["/verify"]
+    R4["/search/*"]
+    R5["/navigate"]
+    R6["/embeddings"]
+    R7["/graph"]
+  end
+  ST[Streamlit UI]
+  R1 -.-> ST
+  R2 -.-> ST
+  R3 -.-> ST
+  R4 -.-> ST
+  R5 -.-> ST
+end
+
+DSL --> VER --> VREPO
+VER --> EREPO
+DSL --> COMP
+DSL --> GEN
+
+VREPO --> DE --> JE
+JR <--> JCFG
+PS <--> JCFG
+
+Corpus --> CE
+Corpus --> BM25
+
+VS --> R4
+VS <--> ESTORE
+N2V <--> GSTORE
+ESTORE --> R6
+GSTORE --> R7
+
+DE --> R1
+PS --> R5
+CE --> R3
+CTX --> R2
+
+%% Packing links (slightly improved)
+DSL ~~~ Corpus
+GEN ~~~ CE
+CE ~~~ BM25
+VER ~~~ COMP
+
+%% Pull "decision/runtime" closer to "ML indexing"
+DE ~~~ GEN
+
+%% Keep DB adjacent to runtime logic
+VREPO ~~~ COMP
 ```
 
 ## Project Structure
