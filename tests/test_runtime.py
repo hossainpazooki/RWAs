@@ -7,17 +7,17 @@ Tests IR execution, caching, and tracing.
 import pytest
 from pathlib import Path
 
-from backend.database_service.app.services.compiler.ir import (
+from backend.database_service.app.services.retrieval_engine.compiler.ir import (
     CompiledCheck,
     DecisionEntry,
     ObligationSpec,
     RuleIR,
 )
-from backend.database_service.app.services.compiler.compiler import compile_rule
-from backend.database_service.app.services.compiler.premise_index import PremiseIndexBuilder
-from backend.database_service.app.services.runtime.executor import RuleRuntime, execute_rule
-from backend.database_service.app.services.runtime.cache import IRCache, get_ir_cache, reset_ir_cache
-from backend.database_service.app.services.runtime.trace import ExecutionTrace, TraceStep, DecisionResult
+from backend.database_service.app.services.retrieval_engine.compiler.compiler import compile_rule
+from backend.database_service.app.services.retrieval_engine.compiler.premise_index import PremiseIndexBuilder
+from backend.database_service.app.services.retrieval_engine.runtime.executor import RuleRuntime, execute_rule
+from backend.database_service.app.services.retrieval_engine.runtime.cache import IRCache, get_ir_cache, reset_ir_cache
+from backend.database_service.app.services.retrieval_engine.runtime.trace import ExecutionTrace, TraceStep, DecisionResult
 from backend.rule_service.app.services.loader import (
     RuleLoader,
     Rule,

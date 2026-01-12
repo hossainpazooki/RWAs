@@ -6,10 +6,10 @@ from fastapi import APIRouter, HTTPException, Query
 
 from backend.rule_service.app.services import RuleLoader
 from backend.config import get_settings
-from backend.database_service.app.services.repositories.version_repo import (
+from backend.database_service.app.services.temporal_engine.version_repo import (
     RuleVersionRepository,
 )
-from backend.database_service.app.services.repositories.event_repo import (
+from backend.database_service.app.services.temporal_engine.event_repo import (
     RuleEventRepository,
 )
 from .models import (

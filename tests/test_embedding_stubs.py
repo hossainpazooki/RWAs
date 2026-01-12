@@ -129,7 +129,7 @@ class TestGraphRouteStubs:
 
 
 class TestGraphEmbeddingService:
-    """Test Story 4: Graph embedding service stubs."""
+    """Test Story 4: Graph embedding service implementation."""
 
     def test_service_class_exists(self):
         """Verify GraphEmbeddingService class is defined."""
@@ -138,36 +138,86 @@ class TestGraphEmbeddingService:
         service = GraphEmbeddingService()
         assert service is not None
 
-    def test_rule_to_graph_stub(self):
-        """Verify rule_to_graph raises NotImplementedError."""
+    def test_rule_to_graph_implementation(self):
+        """Verify rule_to_graph converts rule to NetworkX graph."""
+        pytest.importorskip("networkx")
+        pytest.importorskip("numpy")
+        from backend.rule_embedding_service.app.services.graph import GraphEmbeddingService
+        from backend.rule_embedding_service.app.services.models import (
+            EmbeddingRule,
+            EmbeddingCondition,
+            EmbeddingDecision,
+        )
+
+        service = GraphEmbeddingService()
+
+        # Create a mock rule
+        rule = EmbeddingRule(
+            id=1,
+            rule_id="test_rule",
+            name="Test Rule",
+            description="A test rule",
+            conditions=[
+                EmbeddingCondition(
+                    id=1,
+                    rule_id=1,
+                    field="actor.type",
+                    operator="equals",
+                    value='"retail"',
+                )
+            ],
+            decision=EmbeddingDecision(
+                id=1,
+                rule_id=1,
+                outcome="approved",
+                confidence=0.9,
+            ),
+            legal_sources=[],
+        )
+
+        graph = service.rule_to_graph(rule)
+
+        # Verify graph structure
+        assert graph.number_of_nodes() > 0
+        assert graph.number_of_edges() > 0
+        # Should have rule node
+        assert f"rule:{rule.rule_id}" in graph.nodes()
+
+    def test_generate_graph_embedding_implementation(self):
+        """Verify generate_graph_embedding produces embedding vector."""
+        nx = pytest.importorskip("networkx")
+        pytest.importorskip("numpy")
         from backend.rule_embedding_service.app.services.graph import GraphEmbeddingService
 
         service = GraphEmbeddingService()
-        with pytest.raises(NotImplementedError, match="Stub"):
-            service.rule_to_graph(None)
 
-    def test_generate_graph_embedding_stub(self):
-        """Verify generate_graph_embedding raises NotImplementedError."""
+        # Create simple test graph
+        G = nx.Graph()
+        G.add_node("rule:test", node_type="rule", label="Test")
+        G.add_node("cond:test:0", node_type="condition", label="condition")
+        G.add_edge("rule:test", "cond:test:0", edge_type="HAS_CONDITION")
+
+        embedding = service.generate_graph_embedding(G, dimensions=64)
+
+        # Verify embedding shape
+        assert len(embedding) == 64
+        # Verify non-zero (at least some features)
+        assert any(v != 0 for v in embedding)
+
+    def test_find_similar_by_structure_requires_session(self):
+        """Verify find_similar_by_structure requires database session."""
         from backend.rule_embedding_service.app.services.graph import GraphEmbeddingService
 
         service = GraphEmbeddingService()
-        with pytest.raises(NotImplementedError, match="Stub"):
-            service.generate_graph_embedding(None)
-
-    def test_find_similar_by_structure_stub(self):
-        """Verify find_similar_by_structure raises NotImplementedError."""
-        from backend.rule_embedding_service.app.services.graph import GraphEmbeddingService
-
-        service = GraphEmbeddingService()
-        with pytest.raises(NotImplementedError, match="Stub"):
+        with pytest.raises(ValueError, match="Session required"):
             service.find_similar_by_structure("test_rule")
 
-    def test_compare_graphs_stub(self):
-        """Verify compare_graphs raises NotImplementedError."""
+    def test_compare_graphs_requires_session(self):
+        """Verify compare_graphs requires database session."""
         from backend.rule_embedding_service.app.services.graph import GraphEmbeddingService
 
         service = GraphEmbeddingService()
-        with pytest.raises(NotImplementedError, match="Stub"):
+        with pytest.raises(ValueError, match="Session required"):
             service.compare_graphs("rule_a", "rule_b")
 
 

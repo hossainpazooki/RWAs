@@ -14,11 +14,6 @@ A computational law platform for MiCA, RWA tokenization, and stablecoin framewor
     "curve": "basis"
   }
 }}%%
-%% padding(wrapper) + padding(child subgraph) + internal node spacing
-%% Whitespace comes from:
-%% - wrapper/cluster padding (subgraphs)
-%% - nested subgraph padding
-%% - nodeSpacing + rankSpacing
 
 flowchart LR
 
@@ -26,6 +21,7 @@ subgraph Input[" "]
   direction TB
   DSL[YAML Rules]
   Corpus[Legal Corpus]
+  DSL ~~~ Corpus
 end
 
 subgraph MLWorkflows["ML workflows"]
@@ -41,6 +37,7 @@ subgraph MLWorkflows["ML workflows"]
     EMB4 -.- LEG[legal]
     GEN --> GEMB[Graph Embedding]
     GEMB --> N2V[Node2Vec]
+    VS ~~~ N2V
   end
 
   subgraph VerifyService["verification_service/"]
@@ -58,15 +55,37 @@ subgraph MLWorkflows["ML workflows"]
     BM25[BM25 Index]
     BM25 --> CTX[Context Helpers]
   end
+
+  subgraph DecoderService["decoder_service/"]
+    direction TB
+    DEC[Decoder] --> TMPL[Templates]
+    DEC --> CIT[Citations]
+    DEC --> CF[Counterfactual]
+    CF --> DELTA[Delta]
+    TMPL ~~~ CIT
+    CIT ~~~ CF
+  end
 end
 
 subgraph CoreEngine["Core rule execution"]
   direction LR
 
+  subgraph CoreServices["core/"]
+    direction TB
+    ONT[Ontology]
+    TYPES[Types & Enums]
+    RDSL[Rule DSL]
+    TRC[Trace & Consistency]
+    ONT --> TYPES --> RDSL
+    RDSL ~~~ TRC
+  end
+
   subgraph RuleService["rule_service/"]
     direction TB
     VER[Version Service]
     DE[Decision Engine]
+    VER ~~~ DE
+
     subgraph Jurisdiction["jurisdiction/"]
       JR[Resolver] --> JE[Evaluator]
       JE --> CD[Conflicts] --> PS[Pathway]
@@ -74,14 +93,30 @@ subgraph CoreEngine["Core rule execution"]
   end
 
   subgraph DatabaseService["database_service/"]
-    direction TB
-    COMP[Compiler] --> IDX[Premise Index]
-    COMP --> CACHE[IR Cache]
-    VREPO[Version Repo]
-    EREPO[Event Repo]
-    JCFG[Jurisdiction Config]
-    ESTORE[Embedding Store]
-    GSTORE[Graph Store]
+    direction LR
+
+    subgraph TemporalEngine["temporal_engine/"]
+      direction TB
+      VREPO[Version Repo]
+      EREPO[Event Repo]
+      VREPO ~~~ EREPO
+    end
+
+    subgraph RetrievalEngine["retrieval_engine/"]
+      direction TB
+      COMP[Compiler] --> IDX[Premise Index]
+      COMP --> CACHE[IR Cache]
+      IDX ~~~ CACHE
+    end
+
+    subgraph Stores["stores/"]
+      direction TB
+      JCFG[Jurisdiction Config]
+      ESTORE[Embedding Store]
+      GSTORE[Graph Store]
+      JCFG ~~~ ESTORE
+      ESTORE ~~~ GSTORE
+    end
   end
 end
 
@@ -96,6 +131,8 @@ subgraph Output[" "]
     R5["/navigate"]
     R6["/embeddings"]
     R7["/graph"]
+    R8["/decoder"]
+    R9["/counterfactual"]
   end
   ST[Streamlit UI]
   R1 -.-> ST
@@ -103,8 +140,14 @@ subgraph Output[" "]
   R3 -.-> ST
   R4 -.-> ST
   R5 -.-> ST
+  R8 -.-> ST
+  R9 -.-> ST
 end
 
+%% YAML rules derived from DSL layer
+RDSL -.-> DSL
+
+%% Main flows
 DSL --> VER --> VREPO
 VER --> EREPO
 DSL --> COMP
@@ -128,17 +171,22 @@ PS --> R5
 CE --> R3
 CTX --> R2
 
-%% Packing links (slightly improved)
-DSL ~~~ Corpus
+%% Decoder Service connections
+DE --> DEC
+BM25 --> CIT
+VS --> TMPL
+DEC --> R8
+CF --> R9
+
+%% Cross-subgraph packing
 GEN ~~~ CE
 CE ~~~ BM25
 VER ~~~ COMP
-
-%% Pull "decision/runtime" closer to "ML indexing"
 DE ~~~ GEN
-
-%% Keep DB adjacent to runtime logic
 VREPO ~~~ COMP
+ONT ~~~ GEN
+RDSL ~~~ CE
+BM25 ~~~ DEC
 ```
 
 ## Project Structure

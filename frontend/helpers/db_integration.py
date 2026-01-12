@@ -21,10 +21,10 @@ from backend.database_service.app.services import (
     sync_rule_to_db,
     get_migration_status,
 )
-from backend.database_service.app.services.compiler import RuleCompiler, PremiseIndexBuilder
-from backend.database_service.app.services.compiler.ir import RuleIR
-from backend.database_service.app.services.compiler.optimizer import optimize_rule
-from backend.database_service.app.services.runtime import RuleRuntime, IRCache
+from backend.database_service.app.services.retrieval_engine.compiler import RuleCompiler, PremiseIndexBuilder
+from backend.database_service.app.services.retrieval_engine.compiler.ir import RuleIR
+from backend.database_service.app.services.retrieval_engine.compiler.optimizer import optimize_rule
+from backend.database_service.app.services.retrieval_engine.runtime import RuleRuntime, IRCache
 from backend.rule_service.app.services.loader import Rule
 from backend.rule_service.app.services.schema import ConsistencyBlock
 

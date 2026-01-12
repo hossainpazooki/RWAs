@@ -5,14 +5,14 @@ Provides compile-time transformation of rules to Intermediate Representation (IR
 for O(1) rule lookup and linear condition evaluation at runtime.
 """
 
-from backend.database_service.app.services.compiler.ir import (
+from backend.database_service.app.services.retrieval_engine.compiler.ir import (
     CompiledCheck,
     DecisionEntry,
     ObligationSpec,
     RuleIR,
 )
-from backend.database_service.app.services.compiler.compiler import RuleCompiler, compile_rule, compile_rules
-from backend.database_service.app.services.compiler.premise_index import PremiseIndexBuilder, get_premise_index
+from backend.database_service.app.services.retrieval_engine.compiler.compiler import RuleCompiler, compile_rule, compile_rules
+from backend.database_service.app.services.retrieval_engine.compiler.premise_index import PremiseIndexBuilder, get_premise_index
 
 __all__ = [
     # IR Types

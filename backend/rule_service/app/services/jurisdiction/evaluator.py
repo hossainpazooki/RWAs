@@ -11,7 +11,7 @@ from typing import Any
 
 from backend.rule_service.app.services.engine import DecisionEngine
 from backend.rule_service.app.services.loader import RuleLoader
-from backend.database_service.app.services.compiler.premise_index import get_premise_index
+from backend.database_service.app.services.retrieval_engine.compiler.premise_index import get_premise_index
 from backend.core.ontology.jurisdiction import JurisdictionCode
 
 

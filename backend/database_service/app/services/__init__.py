@@ -1,4 +1,11 @@
-"""Database service - centralized data access middleware."""
+"""Database service - centralized data access middleware.
+
+Structure:
+- temporal_engine/: Version and event repositories for rule lifecycle
+- retrieval_engine/: Compiler and runtime for rule execution
+- stores/: Embedding, graph, and configuration stores
+- repositories/: Core rule and verification repos
+"""
 
 from .database import (
     get_db,
@@ -19,9 +26,21 @@ from .migration import (
     get_migration_status,
 )
 
+# Repositories (core CRUD)
 from .repositories import RuleRepository, VerificationRepository
 
-from .compiler import (
+# Temporal Engine (versioning & event sourcing)
+from .temporal_engine import (
+    RuleVersionRepository,
+    RuleEventRepository,
+    RuleVersionRecord,
+    RuleEventRecord,
+    RuleEventType,
+)
+
+# Retrieval Engine (compiler + runtime)
+from .retrieval_engine import (
+    # Compiler - IR Types
     RuleCompiler,
     compile_rule,
     compile_rules,
@@ -31,9 +50,7 @@ from .compiler import (
     CompiledCheck,
     DecisionEntry,
     ObligationSpec,
-)
-
-from .runtime import (
+    # Runtime
     RuleRuntime,
     execute_rule,
     IRCache,
@@ -42,6 +59,19 @@ from .runtime import (
     ExecutionTrace,
     TraceStep,
     DecisionResult,
+)
+
+# Stores (embeddings, graphs, configuration)
+from .stores import (
+    EmbeddingStore,
+    GraphStore,
+    JurisdictionConfigRepository,
+    EmbeddingRecord,
+    EmbeddingType,
+    GraphNode,
+    GraphEdge,
+    GraphQuery,
+    GraphQueryResult,
 )
 
 __all__ = [
@@ -63,7 +93,13 @@ __all__ = [
     # Repositories
     "RuleRepository",
     "VerificationRepository",
-    # Compiler
+    # Temporal Engine
+    "RuleVersionRepository",
+    "RuleEventRepository",
+    "RuleVersionRecord",
+    "RuleEventRecord",
+    "RuleEventType",
+    # Retrieval Engine - Compiler
     "RuleCompiler",
     "compile_rule",
     "compile_rules",
@@ -73,7 +109,7 @@ __all__ = [
     "CompiledCheck",
     "DecisionEntry",
     "ObligationSpec",
-    # Runtime
+    # Retrieval Engine - Runtime
     "RuleRuntime",
     "execute_rule",
     "IRCache",
@@ -82,4 +118,14 @@ __all__ = [
     "ExecutionTrace",
     "TraceStep",
     "DecisionResult",
+    # Stores
+    "EmbeddingStore",
+    "GraphStore",
+    "JurisdictionConfigRepository",
+    "EmbeddingRecord",
+    "EmbeddingType",
+    "GraphNode",
+    "GraphEdge",
+    "GraphQuery",
+    "GraphQueryResult",
 ]

@@ -12,8 +12,8 @@ from backend.database_service.app.services.database import (
     init_db,
     set_db_path,
 )
-from backend.database_service.app.services.repositories.version_repo import RuleVersionRepository
-from backend.database_service.app.services.repositories.event_repo import RuleEventRepository
+from backend.database_service.app.services.temporal_engine.version_repo import RuleVersionRepository
+from backend.database_service.app.services.temporal_engine.event_repo import RuleEventRepository
 from backend.core.models import RuleEventType
 
 

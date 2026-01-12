@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.database_service.app.services.compiler.ir import RuleIR, CompiledCheck, DecisionEntry
-from backend.database_service.app.services.compiler.premise_index import PremiseIndexBuilder
+from backend.database_service.app.services.retrieval_engine.compiler.ir import RuleIR, CompiledCheck, DecisionEntry
+from backend.database_service.app.services.retrieval_engine.compiler.premise_index import PremiseIndexBuilder
 from .cache import IRCache, get_ir_cache
 from .trace import ExecutionTrace, DecisionResult
 

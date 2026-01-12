@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 import threading
 
-from backend.database_service.app.services.compiler.ir import RuleIR
+from backend.database_service.app.services.retrieval_engine.compiler.ir import RuleIR
 
 
 class IRCache:
