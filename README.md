@@ -195,7 +195,7 @@ BM25 ~~~ DEC
 backend/
 ├── core/                        # Shared infrastructure
 │   ├── config.py                # Settings & feature flags
-│   ├── database.py              # SQLModel ORM utilities
+│   ├── database.py              # SQLModel ORM (PostgreSQL/SQLite)
 │   ├── models.py                # SQLModel entities (RuleRecord, VersionRecord, etc.)
 │   ├── ontology/                # Domain types (Actor, Instrument, Provision)
 │   ├── visualization/           # Tree rendering (Graphviz, Mermaid)
@@ -205,7 +205,10 @@ backend/
 │       ├── routes_counterfactual.py  # /counterfactual endpoint
 │       ├── routes_analytics.py  # /analytics endpoint
 │       ├── routes_navigate.py   # Cross-border navigation
-│       └── routes_ke.py         # KE workbench endpoints
+│       ├── routes_ke.py         # KE workbench endpoints
+│       ├── routes_qa.py         # /qa endpoint (RAG Q&A)
+│       ├── routes_rules.py      # /rules endpoint
+│       └── routes_production.py # /v2 production API
 │
 ├── rule_service/                # Rule management & evaluation
 │   ├── data/                    # YAML rule packs (MiCA, FCA, GENIUS)
@@ -229,6 +232,11 @@ backend/
 │
 ├── database_service/            # Persistence & compilation
 │   └── app/services/
+│       ├── database.py          # SQLAlchemy connection (PostgreSQL/SQLite)
+│       ├── migration.py         # YAML → database migration
+│       ├── repositories/        # Data access layer
+│       │   ├── rule_repo.py     # Rule CRUD operations
+│       │   └── verification_repo.py  # Verification CRUD
 │       ├── retrieval_engine/
 │       │   ├── compiler/        # YAML → IR compilation
 │       │   └── runtime/         # IR cache & execution
@@ -276,7 +284,7 @@ frontend/
 
 data/legal/                      # Legal corpus (MiCA, FCA, GENIUS Act)
 docs/                            # Design documentation
-tests/                           # Test suite (28 modules)
+tests/                           # Test suite (591+ tests)
 ```
 
 ## Regulatory Frameworks
@@ -302,6 +310,31 @@ The system generates 4 types of vector embeddings per rule for multi-faceted sim
 - Uses `sentence-transformers` (all-MiniLM-L6-v2) for dense embeddings
 - Falls back to hash-based vectors when ML unavailable
 - SQLite: JSON arrays; PostgreSQL: pgvector ready
+
+## Backend Services
+
+| Service | Purpose | Key Components |
+|---------|---------|----------------|
+| **core/** | Shared infrastructure | Config, SQLModel ORM, ontology types, FastAPI routes |
+| **rule_service/** | Rule evaluation | Decision engine, YAML loader, jurisdiction resolver |
+| **decoder_service/** | ML explanations | Tiered explanations, counterfactual analysis, citations |
+| **database_service/** | Persistence | SQLAlchemy (PostgreSQL/SQLite), repositories, IR compiler |
+| **verification_service/** | Consistency | Tier 0-4 semantic validation |
+| **analytics_service/** | Analysis | Rule clustering, drift detection, similarity search |
+| **rag_service/** | Retrieval | BM25 index, context helpers |
+| **rule_embedding_service/** | Embeddings | 4-type vectors, Node2Vec graph embeddings |
+
+### Database Support
+
+The backend supports both SQLite (local development) and PostgreSQL (production):
+
+```bash
+# Local development (default)
+DATABASE_URL=sqlite:///./data/ke_workbench.db
+
+# Production (Railway auto-injects)
+DATABASE_URL=postgresql://user:pass@host:5432/db
+```
 
 ## Documentation
 
