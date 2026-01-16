@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import streamlit as st
 import asyncio
+import json
 from datetime import datetime
 
 from backend.rule_service.app.services.jurisdiction.resolver import resolve_jurisdictions, get_equivalences
@@ -25,16 +26,50 @@ from backend.rule_service.app.services.jurisdiction.pathway import (
     aggregate_obligations,
     estimate_timeline,
 )
+from frontend.helpers import get_analytics_client, get_rules_by_jurisdiction
 
 # -----------------------------------------------------------------------------
 # Page Configuration
 # -----------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Navigator",
-    page_icon="🧭",
+    page_title="Cross-Border Navigator",
+    page_icon="",
     layout="wide",
 )
+
+# -----------------------------------------------------------------------------
+# Jurisdiction Info (Sidebar)
+# -----------------------------------------------------------------------------
+
+with st.sidebar:
+    st.header("Jurisdiction Coverage")
+
+    # Get rules by jurisdiction
+    rules_by_jur = get_rules_by_jurisdiction()
+
+    if rules_by_jur:
+        for jur, rules in sorted(rules_by_jur.items()):
+            with st.expander(f"{jur} ({len(rules)} rules)"):
+                for rule_id in rules[:10]:
+                    st.caption(f"• {rule_id}")
+                if len(rules) > 10:
+                    st.caption(f"... and {len(rules) - 10} more")
+    else:
+        st.info("Connect to API to see rules")
+
+    st.divider()
+
+    # Quick reference
+    st.subheader("Quick Reference")
+    st.markdown("""
+    **Jurisdiction Codes:**
+    - **EU** - European Union (MiCA, MiFID II)
+    - **UK** - United Kingdom (FCA Crypto)
+    - **US** - United States (SEC, GENIUS Act)
+    - **CH** - Switzerland (FINMA, FinSA)
+    - **SG** - Singapore (MAS, PSA)
+    """)
 
 # -----------------------------------------------------------------------------
 # Header
@@ -47,6 +82,16 @@ Navigate multi-jurisdiction compliance requirements for digital assets.
 Select your scenario to get a comprehensive analysis of applicable regulations,
 potential conflicts, and recommended compliance pathway.
 """)
+
+# Show coverage summary
+col_sum1, col_sum2, col_sum3 = st.columns(3)
+with col_sum1:
+    total_rules = sum(len(r) for r in rules_by_jur.values()) if rules_by_jur else 0
+    st.metric("Total Rules", total_rules)
+with col_sum2:
+    st.metric("Jurisdictions", len(rules_by_jur) if rules_by_jur else 5)
+with col_sum3:
+    st.metric("Regulatory Regimes", "8")
 
 st.divider()
 
@@ -311,6 +356,31 @@ if "navigate_results" in st.session_state:
         if not results["pathway"]:
             st.info("No compliance steps required")
         else:
+            # Visual flow diagram
+            st.markdown("##### Compliance Flow")
+
+            # Create a simple flow visualization using columns
+            flow_cols = st.columns(min(len(results["pathway"]), 5))
+            for i, step in enumerate(results["pathway"][:5]):
+                with flow_cols[i]:
+                    status = step.get("status", "pending")
+                    jur = step.get("jurisdiction", "?")[:2]
+                    step_num = step.get("step_id", i + 1)
+
+                    if status == "waived":
+                        st.success(f"**{jur}**\nStep {step_num}\n(Waived)")
+                    elif status == "completed":
+                        st.success(f"**{jur}**\nStep {step_num}")
+                    else:
+                        st.warning(f"**{jur}**\nStep {step_num}")
+
+            if len(results["pathway"]) > 5:
+                st.caption(f"... and {len(results['pathway']) - 5} more steps")
+
+            st.divider()
+
+            # Detailed steps
+            st.markdown("##### Step Details")
             for step in results["pathway"]:
                 status_icon = "✅" if step.get("status") == "waived" else "⏳"
                 status_text = "WAIVED" if step.get("status") == "waived" else "PENDING"
@@ -364,6 +434,132 @@ if "navigate_results" in st.session_state:
                 st.write(f"- Status: `{eq['status']}`")
                 if eq.get("notes"):
                     st.write(f"- Notes: {eq['notes']}")
+
+# -----------------------------------------------------------------------------
+# Export Section
+# -----------------------------------------------------------------------------
+
+if "navigate_results" in st.session_state:
+    st.divider()
+    st.header("3. Export Report")
+
+    results = st.session_state["navigate_results"]
+
+    # Build export data
+    export_data = {
+        "generated_at": datetime.now().isoformat(),
+        "scenario": {
+            "issuer_jurisdiction": issuer_jurisdiction,
+            "target_jurisdictions": target_jurisdictions,
+            "instrument_type": instrument_type,
+            "activity": activity,
+            "investor_types": investor_types,
+        },
+        "summary": {
+            "jurisdictions_count": len(results["applicable"]),
+            "obligations_count": len(results["obligations"]),
+            "conflicts_count": len(results["conflicts"]),
+            "estimated_timeline": results["timeline"],
+        },
+        "jurisdiction_results": [
+            {
+                "jurisdiction": jr.get("jurisdiction"),
+                "regime_id": jr.get("regime_id"),
+                "status": jr.get("status"),
+                "role": jr.get("role"),
+                "rules_evaluated": jr.get("rules_evaluated", 0),
+            }
+            for jr in results["jurisdiction_results"]
+        ],
+        "conflicts": results["conflicts"],
+        "pathway": results["pathway"],
+        "obligations": results["obligations"],
+        "equivalences": results["equivalences"],
+    }
+
+    col_exp1, col_exp2, col_exp3 = st.columns(3)
+
+    with col_exp1:
+        # JSON export
+        json_str = json.dumps(export_data, indent=2, default=str)
+        st.download_button(
+            label="Download JSON Report",
+            data=json_str,
+            file_name=f"compliance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+    with col_exp2:
+        # Summary text export
+        summary_text = f"""CROSS-BORDER COMPLIANCE REPORT
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+SCENARIO
+--------
+Issuer Jurisdiction: {issuer_jurisdiction}
+Target Markets: {', '.join(target_jurisdictions)}
+Instrument Type: {instrument_type}
+Activity: {activity}
+Investor Types: {', '.join(investor_types)}
+
+SUMMARY
+-------
+Applicable Jurisdictions: {len(results['applicable'])}
+Total Obligations: {len(results['obligations'])}
+Conflicts Detected: {len(results['conflicts'])}
+Estimated Timeline: {results['timeline']}
+
+COMPLIANCE PATHWAY
+------------------
+"""
+        for step in results["pathway"]:
+            summary_text += f"Step {step['step_id']}: {step.get('jurisdiction', 'N/A')} - {step.get('action', step.get('obligation_id', 'N/A'))}\n"
+
+        summary_text += """
+DISCLAIMER
+----------
+This is a research/demo tool. The compliance analysis is illustrative
+and should not be relied upon for actual regulatory decisions.
+"""
+
+        st.download_button(
+            label="Download Text Summary",
+            data=summary_text,
+            file_name=f"compliance_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
+
+    with col_exp3:
+        # Pathway CSV export
+        if results["pathway"]:
+            import csv
+            import io
+
+            csv_buffer = io.StringIO()
+            writer = csv.writer(csv_buffer)
+            writer.writerow(["Step", "Jurisdiction", "Regime", "Action", "Status", "Min Days", "Max Days"])
+            for step in results["pathway"]:
+                writer.writerow([
+                    step.get("step_id", ""),
+                    step.get("jurisdiction", ""),
+                    step.get("regime", ""),
+                    step.get("action", step.get("obligation_id", "")),
+                    step.get("status", "pending"),
+                    step.get("timeline", {}).get("min_days", ""),
+                    step.get("timeline", {}).get("max_days", ""),
+                ])
+
+            st.download_button(
+                label="Download Pathway CSV",
+                data=csv_buffer.getvalue(),
+                file_name=f"compliance_pathway_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        else:
+            st.button("Download Pathway CSV", disabled=True, use_container_width=True)
 
 # -----------------------------------------------------------------------------
 # Footer
