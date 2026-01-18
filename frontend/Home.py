@@ -64,7 +64,7 @@ with nav_col1:
 
 with nav_col2:
     st.markdown("### Production Demo")
-    st.caption("Compile rules to IR, benchmark O(1) lookup, monitor cache performance")
+    st.caption("Synthetic data strategy, deployment guardrails, O(1) performance benchmarks")
     st.page_link("pages/2_Production_Demo.py", label="Open Production Demo", icon="🏭")
 
 with nav_col3:
@@ -236,10 +236,25 @@ st.divider()
 st.header("Getting Started")
 
 st.markdown("""
-1. **Start the API server:** `uvicorn backend.main:app --reload`
-2. **Open KE Workbench** to browse rules and run compliance checks
-3. **Use AI Workbench** for embedding analysis and similarity search
+**Local Development:**
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start API server
+uvicorn backend.main:app --reload
+
+# Start Streamlit (separate terminal)
+streamlit run frontend/Home.py
+```
+
+**Quick Links:**
+- **KE Workbench** — Browse rules, run compliance checks, verify consistency
+- **Production Demo** — Synthetic data, guardrails, performance benchmarks
+- **Cross-Border Navigator** — Multi-jurisdiction compliance pathways
 """)
+
+st.info("**Live Demo:** [pazooki.streamlit.app](https://pazooki.streamlit.app) — Deployed on Railway with PostgreSQL")
 
 st.divider()
 

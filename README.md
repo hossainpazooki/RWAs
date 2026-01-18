@@ -385,6 +385,40 @@ DATABASE_URL=sqlite:///./data/ke_workbench.db
 DATABASE_URL=postgresql://user:pass@host:5432/db
 ```
 
+## Quick Start
+
+### Local Development
+
+```bash
+# Clone and install
+git clone https://github.com/yourusername/droit.git
+cd droit
+pip install -r requirements.txt
+
+# Start API server
+uvicorn backend.main:app --reload
+
+# Start Streamlit frontend (separate terminal)
+streamlit run frontend/Home.py
+```
+
+### Railway Deployment
+
+The project is configured for [Railway](https://railway.app) deployment:
+
+- **Dockerfile**: Multi-stage build with Python 3.11
+- **railway.json**: Health checks at `/health`, auto-restart on failure
+- **PostgreSQL**: Automatically provisioned via Railway plugin
+
+```bash
+# Deploy to Railway
+railway up
+
+# Or connect existing repo via Railway dashboard
+```
+
+The live demo at [pazooki.streamlit.app](https://pazooki.streamlit.app) runs on Railway with PostgreSQL.
+
 ## Documentation
 
 - [Knowledge Model](docs/knowledge_model.md) — Ontology design
