@@ -9,6 +9,7 @@ from .routes_navigate import router as navigate_router
 from .routes_decoder import router as decoder_router
 from .routes_counterfactual import router as counterfactual_router
 from .routes_analytics import router as analytics_router
+from .routes_risk import router as risk_router
 from backend.rule_embedding_service.app.services.routes import router as embedding_router
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "decoder_router",
     "counterfactual_router",
     "analytics_router",
+    "risk_router",
     "embedding_router",
 ]
