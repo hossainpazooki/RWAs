@@ -28,6 +28,9 @@ from .schemas import (
     CoverageReport,
     UMAPProjectionRequest,
     UMAPProjectionResponse,
+    GraphData,
+    GraphNode,
+    GraphLink,
 )
 from .service import RuleAnalyticsService
 # Import from rules domain
@@ -304,3 +307,212 @@ def get_analytics_summary() -> dict[str, Any]:
     }
 
     return summary
+
+
+# =============================================================================
+# Graph Visualization Endpoints
+# =============================================================================
+
+def _build_rule_graph(rule) -> tuple[list[GraphNode], list[GraphLink]]:
+    """Build graph nodes and links from a single rule's decision tree."""
+    nodes: list[GraphNode] = []
+    links: list[GraphLink] = []
+
+    # Add rule node
+    rule_node = GraphNode(
+        id=rule.rule_id,
+        label=rule.rule_id,
+        type="rule",
+        rule_id=rule.rule_id,
+        metadata={
+            "jurisdiction": rule.jurisdiction.value if rule.jurisdiction else None,
+            "version": rule.version,
+        }
+    )
+    nodes.append(rule_node)
+
+    # Add decision tree nodes if present
+    if rule.decision_tree:
+        node_counter = [0]
+
+        def traverse_tree(tree_node, parent_id: str | None = None):
+            node_counter[0] += 1
+            node_id = f"{rule.rule_id}_node_{node_counter[0]}"
+
+            # Determine node type and label
+            if hasattr(tree_node, 'condition'):
+                # Branch node
+                condition = tree_node.condition
+                label = f"{condition.field} {condition.operator} {condition.value}"
+                node_type = "condition"
+            else:
+                # Leaf node
+                label = str(tree_node.outcome) if hasattr(tree_node, 'outcome') else "outcome"
+                node_type = "outcome"
+
+            graph_node = GraphNode(
+                id=node_id,
+                label=label,
+                type=node_type,
+                rule_id=rule.rule_id,
+            )
+            nodes.append(graph_node)
+
+            if parent_id:
+                links.append(GraphLink(
+                    source=parent_id,
+                    target=node_id,
+                    type="contains",
+                    weight=1.0,
+                ))
+
+            # Traverse children
+            if hasattr(tree_node, 'true_branch'):
+                traverse_tree(tree_node.true_branch, node_id)
+            if hasattr(tree_node, 'false_branch'):
+                traverse_tree(tree_node.false_branch, node_id)
+
+        traverse_tree(rule.decision_tree, rule.rule_id)
+
+    return nodes, links
+
+
+@router.get("/graph/{rule_id}", response_model=GraphData)
+def get_rule_graph(rule_id: str) -> GraphData:
+    """Get graph structure for a single rule's decision tree.
+
+    Returns nodes and links representing the rule's decision tree
+    for force-directed graph visualization.
+    """
+    loader = get_rule_loader()
+    rule = loader.get_rule(rule_id)
+
+    if rule is None:
+        raise HTTPException(status_code=404, detail=f"Rule not found: {rule_id}")
+
+    nodes, links = _build_rule_graph(rule)
+
+    return GraphData(
+        nodes=nodes,
+        links=links,
+        metadata={"rule_id": rule_id, "view": "single_rule"}
+    )
+
+
+@router.get("/graph", response_model=GraphData)
+def get_all_rules_graph() -> GraphData:
+    """Get graph structure for all rules overview.
+
+    Returns nodes for each rule with links based on jurisdiction grouping.
+    """
+    loader = get_rule_loader()
+    rules = loader.get_all_rules()
+
+    nodes: list[GraphNode] = []
+    links: list[GraphLink] = []
+
+    # Add jurisdiction nodes
+    jurisdictions = set()
+    for rule in rules:
+        if rule.jurisdiction:
+            jurisdictions.add(rule.jurisdiction.value)
+
+    for j in jurisdictions:
+        nodes.append(GraphNode(
+            id=f"jurisdiction_{j}",
+            label=j,
+            type="jurisdiction",
+        ))
+
+    # Add rule nodes and links to jurisdictions
+    for rule in rules:
+        rule_node = GraphNode(
+            id=rule.rule_id,
+            label=rule.rule_id,
+            type="rule",
+            rule_id=rule.rule_id,
+            metadata={
+                "jurisdiction": rule.jurisdiction.value if rule.jurisdiction else None,
+                "version": rule.version,
+            }
+        )
+        nodes.append(rule_node)
+
+        if rule.jurisdiction:
+            links.append(GraphLink(
+                source=f"jurisdiction_{rule.jurisdiction.value}",
+                target=rule.rule_id,
+                type="contains",
+                weight=1.0,
+            ))
+
+    return GraphData(
+        nodes=nodes,
+        links=links,
+        metadata={"view": "all_rules", "total_rules": len(rules)}
+    )
+
+
+@router.get("/network", response_model=GraphData)
+def get_network_graph(
+    min_similarity: float = Query(default=0.7, ge=0.0, le=1.0),
+) -> GraphData:
+    """Get network graph with rules as nodes and similarity edges.
+
+    Returns a graph where nodes are rules and edges connect rules
+    with similarity above the threshold.
+    """
+    loader = get_rule_loader()
+    service = get_analytics_service()
+    rules = loader.get_all_rules()
+
+    nodes: list[GraphNode] = []
+    links: list[GraphLink] = []
+
+    # Add rule nodes
+    for rule in rules:
+        rule_node = GraphNode(
+            id=rule.rule_id,
+            label=rule.rule_id,
+            type="rule",
+            rule_id=rule.rule_id,
+            metadata={
+                "jurisdiction": rule.jurisdiction.value if rule.jurisdiction else None,
+                "version": rule.version,
+            }
+        )
+        nodes.append(rule_node)
+
+    # Find similar pairs and add edges
+    for i, rule in enumerate(rules):
+        try:
+            similar = service.find_similar(
+                rule_id=rule.rule_id,
+                embedding_type="all",
+                top_k=10,
+                min_score=min_similarity,
+                include_explanation=False,
+            )
+            for sim_rule in similar.similar_rules:
+                # Avoid duplicate edges (only add if source < target alphabetically)
+                if rule.rule_id < sim_rule.rule_id:
+                    links.append(GraphLink(
+                        source=rule.rule_id,
+                        target=sim_rule.rule_id,
+                        type="similar",
+                        weight=sim_rule.overall_score,
+                    ))
+        except Exception:
+            # Skip rules that fail similarity search
+            continue
+
+    return GraphData(
+        nodes=nodes,
+        links=links,
+        metadata={
+            "view": "network",
+            "min_similarity": min_similarity,
+            "total_rules": len(rules),
+            "total_edges": len(links),
+        }
+    )

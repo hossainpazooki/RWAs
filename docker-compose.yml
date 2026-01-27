@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./data/droit.db
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:8501
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
       - ENABLE_VECTOR_SEARCH=true
     volumes:
       - ./data:/app/data
@@ -19,14 +19,14 @@ services:
       timeout: 10s
       retries: 3
 
-  workbench:
+  frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.streamlit
+      context: ./frontend-react
+      dockerfile: Dockerfile
     ports:
-      - "8501:8501"
+      - "3000:80"
     environment:
-      - API_URL=http://api:8000
+      - VITE_API_URL=http://api:8000
     depends_on:
       api:
         condition: service_healthy

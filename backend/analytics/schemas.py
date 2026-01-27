@@ -337,3 +337,36 @@ class UMAPProjectionResponse(BaseModel):
     embedding_type: EmbeddingTypeEnum
     n_components: int
     total_rules: int = Field(0, ge=0)
+
+
+# ============================================================================
+# Graph Visualization Schemas
+# ============================================================================
+
+
+class GraphNode(BaseModel):
+    """A node in a rule graph."""
+
+    id: str
+    label: str
+    type: str = Field(..., description="rule | entity | legal_ref | jurisdiction | condition | outcome")
+    rule_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphLink(BaseModel):
+    """A link between nodes in a rule graph."""
+
+    source: str
+    target: str
+    type: str = Field(..., description="contains | references | similar | depends_on")
+    weight: float = Field(1.0, ge=0.0, le=1.0)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphData(BaseModel):
+    """Graph structure for visualization."""
+
+    nodes: list[GraphNode] = Field(default_factory=list)
+    links: list[GraphLink] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)

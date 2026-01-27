@@ -13,13 +13,10 @@ psycopg2-binary>=2.9.9  # PostgreSQL driver (production)
 # BM25 retrieval (no ML)
 rank-bm25>=0.2.2
 
-# Dashboard (Streamlit Cloud compatible)
-streamlit>=1.29.0
-plotly>=5.18.0
+# Data processing
 pandas>=2.0.0
 
-# Graph visualization
-pyvis>=0.3.2
+# Graph operations
 networkx>=3.0
 
 # Testing
